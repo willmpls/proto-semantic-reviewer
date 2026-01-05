@@ -84,6 +84,7 @@ message OrderCreatedEvent {
 - **HTTP API**: FastAPI server with OpenAPI documentation
 - **MCP Server**: IDE integration for IntelliJ, VS Code, and other MCP-compatible tools
 - **Optional Authorization**: AD group-based access control via header
+- **Enterprise Ready**: Custom endpoints, HTTP headers, and CA certificates for corporate proxies
 - **Docker Ready**: Run anywhere with Docker Compose
 - **CLI & Programmatic**: Use from command line or integrate into your Python code
 - **Structured Output**: Get JSON results for easy CI integration
