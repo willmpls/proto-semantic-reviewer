@@ -46,10 +46,22 @@ class TestGetProviderHeaders:
             }
 
     def test_underscore_to_hyphen_conversion(self):
-        """Test that underscores in header names become hyphens."""
+        """Test that single underscores in header names become hyphens."""
         with patch.dict(os.environ, {"ANTHROPIC_HEADER_X_Custom_Auth_Token": "secret"}, clear=True):
             headers = get_provider_headers("ANTHROPIC")
             assert headers == {"X-Custom-Auth-Token": "secret"}
+
+    def test_double_underscore_to_literal_underscore(self):
+        """Test that double underscores become literal underscores."""
+        with patch.dict(os.environ, {"OPENAI_HEADER_X__Custom__Name": "value"}, clear=True):
+            headers = get_provider_headers("OPENAI")
+            assert headers == {"X_Custom_Name": "value"}
+
+    def test_mixed_underscore_patterns(self):
+        """Test mixed single and double underscores."""
+        with patch.dict(os.environ, {"OPENAI_HEADER_X_Foo__Bar_Baz": "value"}, clear=True):
+            headers = get_provider_headers("OPENAI")
+            assert headers == {"X-Foo_Bar-Baz": "value"}
 
     def test_different_providers_isolated(self):
         """Test that headers are isolated per provider."""

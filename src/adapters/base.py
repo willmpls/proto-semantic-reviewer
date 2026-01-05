@@ -23,10 +23,14 @@ def get_provider_headers(provider_prefix: str) -> dict[str, str]:
     Parse HTTP headers from environment variables.
 
     Environment variables matching {PROVIDER}_HEADER_{NAME}=value are converted
-    to HTTP headers where underscores in NAME become hyphens.
+    to HTTP headers with the following rules:
+    - Single underscore `_` becomes a hyphen `-`
+    - Double underscore `__` becomes a literal underscore `_`
 
-    Example:
-        OPENAI_HEADER_X_Request_Id=123 -> {"X-Request-Id": "123"}
+    Examples:
+        OPENAI_HEADER_X_Request_Id=123      -> {"X-Request-Id": "123"}
+        OPENAI_HEADER_X__Custom__Name=val   -> {"X_Custom_Name": "val"}
+        OPENAI_HEADER_Content_Type=json     -> {"Content-Type": "json"}
 
     Args:
         provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
@@ -38,7 +42,11 @@ def get_provider_headers(provider_prefix: str) -> dict[str, str]:
     headers = {}
     for key, value in os.environ.items():
         if key.startswith(prefix):
-            header_name = key[len(prefix):].replace("_", "-")
+            header_name = key[len(prefix):]
+            # Use placeholder to preserve double underscores
+            header_name = header_name.replace("__", "\x00")
+            header_name = header_name.replace("_", "-")
+            header_name = header_name.replace("\x00", "_")
             headers[header_name] = value
     return headers
 

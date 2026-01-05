@@ -11,11 +11,13 @@ src/__init__.py
 src/__main__.py
 src/agent.py
 src/auth.py
+src/logging_config.py
 src/mcp_server.py
 src/prompts.py
 src/server.py
 src/tool_definitions.py
 src/tools.py
+src/validation.py
 src/adapters/__init__.py
 src/adapters/anthropic_adapter.py
 src/adapters/base.py

@@ -532,18 +532,24 @@ For enterprise environments with API proxies, custom headers, or internal CA cer
 
 **Custom HTTP Headers** (for authentication, tracing, etc.):
 
-Headers are configured via environment variables matching the pattern `{PROVIDER}_HEADER_{NAME}=value`. Underscores in the header name are converted to hyphens.
+Headers are configured via environment variables matching the pattern `{PROVIDER}_HEADER_{NAME}=value`:
+- Single underscore `_` becomes a hyphen `-`
+- Double underscore `__` becomes a literal underscore `_`
+
+| Environment Variable | Resulting Header |
+|---------------------|------------------|
+| `OPENAI_HEADER_X_Request_Id=123` | `X-Request-Id: 123` |
+| `OPENAI_HEADER_Content_Type=json` | `Content-Type: json` |
+| `OPENAI_HEADER_X__Underscore__Name=val` | `X_Underscore_Name: val` |
+| `OPENAI_HEADER_X_Mixed__Style_Name=val` | `X-Mixed_Style-Name: val` |
 
 ```bash
-# Add X-Request-Id header to OpenAI requests
-export OPENAI_HEADER_X_Request_Id=my-trace-id
+# Hyphenated headers (most common) - use single underscores
+export OPENAI_HEADER_X_Request_Id=my-trace-id      # → X-Request-Id
+export OPENAI_HEADER_Content_Type=application/json # → Content-Type
 
-# Add custom auth header to Anthropic
-export ANTHROPIC_HEADER_X_Custom_Auth=token123
-
-# Multiple headers for same provider
-export OPENAI_HEADER_X_Tenant_Id=tenant-abc
-export OPENAI_HEADER_X_Environment=production
+# Underscored headers (rare) - use double underscores
+export OPENAI_HEADER_X__Custom__Header=value       # → X_Custom_Header
 ```
 
 **Custom CA Certificates** (for corporate proxies or self-signed certs):
