@@ -4,15 +4,22 @@ FastAPI server for proto semantic review.
 Provides HTTP endpoints for reviewing Protocol Buffer definitions.
 """
 
-from typing import Optional
+from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Query
+import asyncio
+import logging
+import uuid
+from typing import Optional, List, Dict
+
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from .agent import review_proto, review_proto_structured
-from .adapters import get_available_providers, create_adapter
+from .agent import review_proto, review_proto_structured, ReviewContext
+from .adapters import get_available_providers
 from .auth import ADAuthMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -151,40 +158,54 @@ async def review_proto_endpoint(
     - **model**: Specific model name (uses provider default if not specified)
     - **focus**: Review focus - 'event' for event messaging, 'rest' for REST APIs
     """
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(f"[{request_id}] Structured review request received")
+
     if not request.proto_content.strip():
         raise HTTPException(status_code=400, detail="proto_content cannot be empty")
 
     try:
-        result = review_proto_structured(
+        context = ReviewContext(provider=provider, model_name=model, focus=focus)
+
+        # Run the sync review function in a thread pool to avoid blocking
+        result = await asyncio.to_thread(
+            review_proto_structured,
             proto_content=request.proto_content,
-            provider=provider,
-            model_name=model,
-            focus=focus,
+            context=context,
         )
 
-        # Get adapter info for response
-        adapter = create_adapter(provider=provider, model_name=model)
-
-        # Handle error in result
-        if result.get("error"):
+        # Handle error in result content
+        if isinstance(result.content, dict) and result.content.get("error"):
+            logger.error(f"[{request_id}] Review error: {result.content.get('error')}")
             raise HTTPException(
                 status_code=500,
-                detail=result.get("error")
+                detail="Review processing failed"  # Sanitized error message
             )
 
+        logger.info(
+            f"[{request_id}] Review completed: provider={result.provider_name}, "
+            f"model={result.model_name}, iterations={result.iterations_used}"
+        )
+
+        content = result.content if isinstance(result.content, dict) else {}
         return ReviewResponse(
-            issues=[ReviewIssue(**issue) for issue in result.get("issues", [])],
-            summary=result.get("summary", ""),
-            provider=adapter.provider_name,
-            model=adapter.model_name if hasattr(adapter, 'model_name') else adapter.default_model,
+            issues=[ReviewIssue(**issue) for issue in content.get("issues", [])],
+            summary=content.get("summary", ""),
+            provider=result.provider_name,
+            model=result.model_name,
         )
 
     except ValueError as e:
+        logger.warning(f"[{request_id}] Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except ImportError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[{request_id}] Import error: {e}")
+        raise HTTPException(status_code=500, detail="Required provider SDK not installed")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Review failed: {str(e)}")
+        logger.exception(f"[{request_id}] Unexpected error during review")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @app.post(
@@ -206,36 +227,54 @@ async def review_proto_raw_endpoint(
 
     Returns the model's unstructured text response without JSON parsing.
     """
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(f"[{request_id}] Raw review request received")
+
     if not request.proto_content.strip():
         raise HTTPException(status_code=400, detail="proto_content cannot be empty")
 
     try:
-        result = review_proto(
+        context = ReviewContext(provider=provider, model_name=model, focus=focus)
+
+        # Run the sync review function in a thread pool to avoid blocking
+        result = await asyncio.to_thread(
+            review_proto,
             proto_content=request.proto_content,
-            provider=provider,
-            model_name=model,
-            focus=focus,
+            context=context,
         )
 
-        adapter = create_adapter(provider=provider, model_name=model)
+        logger.info(
+            f"[{request_id}] Raw review completed: provider={result.provider_name}, "
+            f"model={result.model_name}, iterations={result.iterations_used}"
+        )
 
         return RawReviewResponse(
-            raw_response=result,
-            provider=adapter.provider_name,
-            model=adapter.model_name if hasattr(adapter, 'model_name') else adapter.default_model,
+            raw_response=result.content if isinstance(result.content, str) else str(result.content),
+            provider=result.provider_name,
+            model=result.model_name,
         )
 
     except ValueError as e:
+        logger.warning(f"[{request_id}] Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except ImportError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[{request_id}] Import error: {e}")
+        raise HTTPException(status_code=500, detail="Required provider SDK not installed")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Review failed: {str(e)}")
+        logger.exception(f"[{request_id}] Unexpected error during raw review")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000):
     """Run the FastAPI server."""
     import uvicorn
+    from .logging_config import configure_logging
+
+    # Configure structured logging before starting server
+    configure_logging()
+
     uvicorn.run(app, host=host, port=port)
 
 

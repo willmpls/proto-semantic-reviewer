@@ -9,8 +9,10 @@ Usage:
     python -m src mcp --port 3000  # HTTP with custom port
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import Any, Optional, Dict
 
 # Configure logging (critical for STDIO mode - never use print())
 logging.basicConfig(

@@ -7,10 +7,15 @@ Handles the specifics of OpenAI's API including:
 - Response parsing for tool calls with JSON argument parsing
 """
 
-import json
-from typing import Any, Optional
+from __future__ import annotations
 
-from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role
+import json
+import logging
+from typing import Any, Optional, Tuple, List
+
+from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIAdapter(ModelAdapter):
@@ -24,7 +29,7 @@ class OpenAIAdapter(ModelAdapter):
 
     @property
     def default_model(self) -> str:
-        return "gpt-5.2"
+        return "gpt-4o"
 
     @property
     def provider_name(self) -> str:
@@ -36,18 +41,32 @@ class OpenAIAdapter(ModelAdapter):
         tools: list[ToolDeclaration],
         system_prompt: str,
         temperature: float = 0.2,
+        timeout: float | None = None,
     ) -> tuple[str | None, list[ToolCall]]:
         """Generate a response using OpenAI."""
+        timeout = timeout or DEFAULT_TIMEOUT
+
         # Build messages with system prompt first
         openai_messages = [{"role": "system", "content": system_prompt}]
         openai_messages.extend(self._convert_messages(messages))
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=openai_messages,
-            tools=self._convert_tools(tools),
-            temperature=temperature,
-        )
+        logger.debug(f"Calling OpenAI API with model={self.model_name}, timeout={timeout}s")
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=openai_messages,
+                tools=self._convert_tools(tools),
+                temperature=temperature,
+                timeout=timeout,
+            )
+        except Exception as e:
+            # OpenAI SDK raises various exceptions for timeouts
+            if "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                logger.error(f"OpenAI API timeout after {timeout}s: {e}")
+                raise TimeoutError(f"OpenAI API request timed out after {timeout}s") from e
+            logger.error(f"OpenAI API error: {e}")
+            raise
 
         message = response.choices[0].message
         text_content = message.content
@@ -61,6 +80,7 @@ class OpenAIAdapter(ModelAdapter):
                     arguments=json.loads(tc.function.arguments),
                 ))
 
+        logger.debug(f"OpenAI response: text={'yes' if text_content else 'no'}, {len(tool_calls)} tool calls")
         return text_content, tool_calls
 
     def _convert_tools(self, tools: list[ToolDeclaration]) -> list[dict]:

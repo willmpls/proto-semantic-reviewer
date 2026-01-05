@@ -10,8 +10,8 @@ from .base import (
     ToolDeclaration,
     Message,
     ToolCall,
-    ToolResult,
     Role,
+    DEFAULT_TIMEOUT,
 )
 from .factory import create_adapter, get_available_providers
 
@@ -20,8 +20,8 @@ __all__ = [
     "ToolDeclaration",
     "Message",
     "ToolCall",
-    "ToolResult",
     "Role",
+    "DEFAULT_TIMEOUT",
     "create_adapter",
     "get_available_providers",
 ]

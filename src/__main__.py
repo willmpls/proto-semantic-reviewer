@@ -176,20 +176,22 @@ def main():
 
         try:
             if args.raw:
-                result = review_proto(
+                review_result = review_proto(
                     proto_content,
                     provider=args.provider,
                     model_name=args.model,
                     focus=args.focus,
                 )
-                print(result)
+                print(review_result.content)
             else:
-                result = review_proto_structured(
+                review_result = review_proto_structured(
                     proto_content,
                     provider=args.provider,
                     model_name=args.model,
                     focus=args.focus,
                 )
+                # Extract dict content from ReviewResult
+                result = review_result.content if isinstance(review_result.content, dict) else {}
                 output = format_structured_output(result, args.format)
                 print(output)
 

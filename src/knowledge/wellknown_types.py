@@ -5,8 +5,10 @@ This module provides guidance on when to use Google's well-known types
 and common type mappings based on field semantics.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict, Tuple
 import re
 
 

@@ -5,10 +5,16 @@ This module defines the abstract interface that all model adapters must implemen
 providing a unified way to interact with different LLM providers.
 """
 
+from __future__ import annotations
+
+import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Optional, Tuple, List
+
+# Default timeout for LLM API calls (in seconds)
+DEFAULT_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", 120))
 
 
 class Role(Enum):
@@ -33,13 +39,6 @@ class ToolCall:
     id: str
     name: str
     arguments: dict[str, Any]
-
-
-@dataclass
-class ToolResult:
-    """Result of executing a tool."""
-    tool_call_id: str
-    content: str
 
 
 @dataclass
@@ -81,6 +80,7 @@ class ModelAdapter(ABC):
         tools: list[ToolDeclaration],
         system_prompt: str,
         temperature: float = 0.2,
+        timeout: float | None = None,
     ) -> tuple[str | None, list[ToolCall]]:
         """
         Generate a response from the model.
@@ -90,10 +90,15 @@ class ModelAdapter(ABC):
             tools: Available tools in JSON Schema format
             system_prompt: System instructions for the model
             temperature: Sampling temperature (0.0-1.0)
+            timeout: Request timeout in seconds (uses DEFAULT_TIMEOUT if None)
 
         Returns:
             Tuple of (text_response, tool_calls)
             - text_response: The model's text output, or None if only tool calls
             - tool_calls: List of tool calls the model wants to make
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout
+            Exception: Provider-specific errors are logged and re-raised
         """
         pass

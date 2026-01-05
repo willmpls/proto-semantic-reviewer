@@ -7,9 +7,14 @@ Handles the specifics of Google's Gemini API including:
 - Response parsing for tool calls
 """
 
-from typing import Any, Optional
+from __future__ import annotations
 
-from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role
+import logging
+from typing import Any, Optional, Tuple, List
+
+from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiAdapter(ModelAdapter):
@@ -37,23 +42,38 @@ class GeminiAdapter(ModelAdapter):
         tools: list[ToolDeclaration],
         system_prompt: str,
         temperature: float = 0.2,
+        timeout: float | None = None,
     ) -> tuple[str | None, list[ToolCall]]:
         """Generate a response using Gemini."""
+        timeout = timeout or DEFAULT_TIMEOUT
         gemini_messages = self._convert_messages(messages)
         gemini_tools = self._convert_tools(tools)
 
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=gemini_messages,
-            config=self._types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                tools=[gemini_tools],
-                temperature=temperature,
-            ),
-        )
+        logger.debug(f"Calling Gemini API with model={self.model_name}, timeout={timeout}s")
+
+        try:
+            # Gemini SDK uses httpx under the hood which respects timeout settings
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=gemini_messages,
+                config=self._types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    tools=[gemini_tools],
+                    temperature=temperature,
+                    http_options={"timeout": timeout},
+                ),
+            )
+        except Exception as e:
+            # Check for timeout-related errors
+            if "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                logger.error(f"Gemini API timeout after {timeout}s: {e}")
+                raise TimeoutError(f"Gemini API request timed out after {timeout}s") from e
+            logger.error(f"Gemini API error: {e}")
+            raise
 
         # Parse response
         if not response.candidates:
+            logger.warning("Gemini returned no candidates")
             return None, []
 
         candidate = response.candidates[0]
@@ -70,6 +90,7 @@ class GeminiAdapter(ModelAdapter):
             elif part.text:
                 text_parts.append(part.text)
 
+        logger.debug(f"Gemini response: {len(text_parts)} text parts, {len(tool_calls)} tool calls")
         return "\n".join(text_parts) if text_parts else None, tool_calls
 
     def _convert_tools(self, tools: list[ToolDeclaration]) -> Any:

@@ -5,17 +5,26 @@ Loads AIP and organizational standards from YAML files, enabling:
 - Easy editing without code changes
 - Organization-specific customization via volume mounts
 - Separation of standards data from code
+
+Thread-safe: Uses locks for lazy initialization of cached standards.
 """
+
+from __future__ import annotations
 
 import os
 import logging
+import threading
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Dict, List
 
 import yaml
 
 logger = logging.getLogger(__name__)
+
+# Thread locks for safe lazy initialization
+_aip_lock = threading.Lock()
+_org_lock = threading.Lock()
 
 
 # =============================================================================
@@ -145,27 +154,37 @@ def load_aip_standards(force_reload: bool = False) -> dict[int, AIPStandard]:
     Load all AIP standards from YAML files.
 
     Standards are cached after first load. Use force_reload=True to refresh.
+    Thread-safe: Uses double-checked locking pattern.
     """
     global _aip_standards
 
+    # Fast path: return cached value if available
     if _aip_standards is not None and not force_reload:
         return _aip_standards
 
-    _aip_standards = {}
-    standards_dir = get_standards_dir() / "aips"
+    # Slow path: acquire lock and load
+    with _aip_lock:
+        # Double-check after acquiring lock
+        if _aip_standards is not None and not force_reload:
+            return _aip_standards
 
-    if not standards_dir.exists():
-        logger.info(f"AIP standards directory not found: {standards_dir}")
+        new_standards: dict[int, AIPStandard] = {}
+        standards_dir = get_standards_dir() / "aips"
+
+        if not standards_dir.exists():
+            logger.info(f"AIP standards directory not found: {standards_dir}")
+            _aip_standards = new_standards
+            return _aip_standards
+
+        for yaml_file in standards_dir.glob("*.yaml"):
+            aip = _load_aip_from_yaml(yaml_file)
+            if aip:
+                new_standards[aip.number] = aip
+                logger.debug(f"Loaded AIP-{aip.number}: {aip.title}")
+
+        _aip_standards = new_standards
+        logger.info(f"Loaded {len(_aip_standards)} AIP standards from {standards_dir}")
         return _aip_standards
-
-    for yaml_file in standards_dir.glob("*.yaml"):
-        aip = _load_aip_from_yaml(yaml_file)
-        if aip:
-            _aip_standards[aip.number] = aip
-            logger.debug(f"Loaded AIP-{aip.number}: {aip.title}")
-
-    logger.info(f"Loaded {len(_aip_standards)} AIP standards from {standards_dir}")
-    return _aip_standards
 
 
 def load_org_standards(force_reload: bool = False) -> dict[str, OrgStandard]:
@@ -173,27 +192,37 @@ def load_org_standards(force_reload: bool = False) -> dict[str, OrgStandard]:
     Load all organizational standards from YAML files.
 
     Standards are cached after first load. Use force_reload=True to refresh.
+    Thread-safe: Uses double-checked locking pattern.
     """
     global _org_standards
 
+    # Fast path: return cached value if available
     if _org_standards is not None and not force_reload:
         return _org_standards
 
-    _org_standards = {}
-    standards_dir = get_standards_dir() / "org"
+    # Slow path: acquire lock and load
+    with _org_lock:
+        # Double-check after acquiring lock
+        if _org_standards is not None and not force_reload:
+            return _org_standards
 
-    if not standards_dir.exists():
-        logger.info(f"ORG standards directory not found: {standards_dir}")
+        new_standards: dict[str, OrgStandard] = {}
+        standards_dir = get_standards_dir() / "org"
+
+        if not standards_dir.exists():
+            logger.info(f"ORG standards directory not found: {standards_dir}")
+            _org_standards = new_standards
+            return _org_standards
+
+        for yaml_file in standards_dir.glob("*.yaml"):
+            org = _load_org_from_yaml(yaml_file)
+            if org:
+                new_standards[org.id.upper()] = org
+                logger.debug(f"Loaded {org.id}: {org.title}")
+
+        _org_standards = new_standards
+        logger.info(f"Loaded {len(_org_standards)} ORG standards from {standards_dir}")
         return _org_standards
-
-    for yaml_file in standards_dir.glob("*.yaml"):
-        org = _load_org_from_yaml(yaml_file)
-        if org:
-            _org_standards[org.id.upper()] = org
-            logger.debug(f"Loaded {org.id}: {org.title}")
-
-    logger.info(f"Loaded {len(_org_standards)} ORG standards from {standards_dir}")
-    return _org_standards
 
 
 # =============================================================================

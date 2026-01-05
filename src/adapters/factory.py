@@ -4,8 +4,10 @@ Adapter factory for creating model adapters.
 This module handles provider detection and adapter instantiation.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Optional
+from typing import Optional, List
 
 from .base import ModelAdapter
 

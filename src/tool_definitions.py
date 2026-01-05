@@ -4,6 +4,8 @@ Provider-agnostic tool declarations for the proto semantic reviewer.
 Tools are defined using JSON Schema format for portability across providers.
 """
 
+from __future__ import annotations
+
 from .adapters.base import ToolDeclaration
 
 

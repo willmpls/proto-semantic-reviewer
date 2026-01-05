@@ -7,9 +7,16 @@ Handles the specifics of Anthropic's Claude API including:
 - Response parsing for tool_use blocks
 """
 
-from typing import Any, Optional
+from __future__ import annotations
 
-from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role
+import logging
+from typing import Any, Optional, Tuple, List
+
+import httpx
+
+from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT
+
+logger = logging.getLogger(__name__)
 
 
 class AnthropicAdapter(ModelAdapter):
@@ -35,18 +42,30 @@ class AnthropicAdapter(ModelAdapter):
         tools: list[ToolDeclaration],
         system_prompt: str,
         temperature: float = 0.2,
+        timeout: float | None = None,
     ) -> tuple[str | None, list[ToolCall]]:
         """Generate a response using Anthropic Claude."""
+        timeout = timeout or DEFAULT_TIMEOUT
         anthropic_messages = self._convert_messages(messages)
 
-        response = self.client.messages.create(
-            model=self.model_name,
-            max_tokens=4096,
-            system=system_prompt,
-            messages=anthropic_messages,
-            tools=self._convert_tools(tools),
-            temperature=temperature,
-        )
+        logger.debug(f"Calling Anthropic API with model={self.model_name}, timeout={timeout}s")
+
+        try:
+            response = self.client.messages.create(
+                model=self.model_name,
+                max_tokens=4096,
+                system=system_prompt,
+                messages=anthropic_messages,
+                tools=self._convert_tools(tools),
+                temperature=temperature,
+                timeout=timeout,
+            )
+        except httpx.TimeoutException as e:
+            logger.error(f"Anthropic API timeout after {timeout}s: {e}")
+            raise TimeoutError(f"Anthropic API request timed out after {timeout}s") from e
+        except Exception as e:
+            logger.error(f"Anthropic API error: {e}")
+            raise
 
         text_parts = []
         tool_calls = []
@@ -61,6 +80,7 @@ class AnthropicAdapter(ModelAdapter):
                     arguments=block.input,
                 ))
 
+        logger.debug(f"Anthropic response: {len(text_parts)} text parts, {len(tool_calls)} tool calls")
         return "\n".join(text_parts) if text_parts else None, tool_calls
 
     def _convert_tools(self, tools: list[ToolDeclaration]) -> list[dict]:

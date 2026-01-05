@@ -88,7 +88,49 @@ message OrderCreatedEvent {
 - **CLI & Programmatic**: Use from command line or integrate into your Python code
 - **Structured Output**: Get JSON results for easy CI integration
 
-## Quick Start (Docker - Recommended)
+## Quick Start (Local)
+
+```bash
+# 1. Create virtualenv and install
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[openai,server]"  # or [anthropic,server] or [gemini,server]
+
+# 2. Set your API key (pick one)
+export OPENAI_API_KEY=your-key
+# or: export ANTHROPIC_API_KEY=your-key
+# or: export GOOGLE_API_KEY=your-key
+
+# 3. Review a proto file
+python -m src review path/to/your.proto
+
+# 4. Or start the HTTP server
+python -m src server
+# API docs at http://localhost:8000/docs
+```
+
+### CLI Commands
+
+```bash
+# Review with different output formats
+python -m src review file.proto              # Structured text output
+python -m src review file.proto --format json # JSON output
+python -m src review file.proto --raw         # Raw LLM response
+
+# Review focus modes
+python -m src review file.proto --focus event # Event messaging (default)
+python -m src review file.proto --focus rest  # REST APIs
+
+# Browse standards
+python -m src list-aips                       # List all AIP standards
+python -m src lookup-aip 142                  # Look up specific AIP
+python -m src list-org-standards              # List org standards
+
+# Pipe from stdin
+cat file.proto | python -m src review -
+```
+
+## Quick Start (Docker)
 
 No local Python installation required. Just Docker.
 
@@ -98,9 +140,9 @@ git clone https://github.com/your-org/proto-semantic-reviewer.git
 cd proto-semantic-reviewer
 
 # Set your API key (at least one required)
-export GOOGLE_API_KEY=your-gemini-key
-# or: export OPENAI_API_KEY=your-openai-key
-# or: export ANTHROPIC_API_KEY=your-anthropic-key
+export OPENAI_API_KEY=your-key
+# or: export ANTHROPIC_API_KEY=your-key
+# or: export GOOGLE_API_KEY=your-key
 
 # Start the HTTP server
 docker-compose up proto-reviewer
@@ -348,18 +390,28 @@ docker-compose --profile mcp up proto-reviewer-mcp
 ## Programmatic Usage
 
 ```python
-from src import review_proto, review_proto_structured
+from src import review_proto, review_proto_structured, ReviewContext, ReviewResult
 
-# Simple review (returns text)
+# Simple review (returns ReviewResult with text content)
 result = review_proto(proto_content)
-print(result)
+print(result.content)  # The review text
+print(result.provider_name)  # e.g., "openai"
+print(result.model_name)  # e.g., "gpt-4o"
 
 # With specific provider
 result = review_proto(proto_content, provider="openai")
 
-# Structured review (returns dict)
+# Using ReviewContext for more control
+context = ReviewContext(
+    provider="anthropic",
+    focus="rest",
+    max_iterations=15,
+)
+result = review_proto(proto_content, context=context)
+
+# Structured review (returns ReviewResult with dict content)
 result = review_proto_structured(proto_content, focus="event")
-for issue in result["issues"]:
+for issue in result.content["issues"]:
     print(f"[{issue['severity']}] {issue['location']}: {issue['issue']}")
 ```
 
@@ -457,6 +509,11 @@ proto-semantic-reviewer/
 | `OPENAI_API_KEY` | One of three | - | OpenAI API key |
 | `ANTHROPIC_API_KEY` | One of three | - | Anthropic API key |
 | `MODEL_PROVIDER` | No | auto-detect | Force a specific provider |
+| `MAX_ITERATIONS` | No | 10 | Max agent tool-use iterations |
+| `MAX_INPUT_SIZE` | No | 102400 | Max proto content size in bytes (100KB) |
+| `LLM_TIMEOUT` | No | 120 | LLM API call timeout in seconds |
+| `LOG_LEVEL` | No | INFO | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `LOG_FORMAT` | No | text | Set to `json` for structured JSON logs |
 | `ALLOWED_AD_GROUPS` | No | - | Comma-separated list of AD groups for authorization |
 | `STANDARDS_DIR` | No | `./standards` | Path to custom standards directory |
 
@@ -534,13 +591,14 @@ curl -X POST http://localhost:8000/review \
 ### Installation Extras
 
 ```bash
-pip install -e ".[gemini]"     # Gemini only
-pip install -e ".[openai]"     # OpenAI only
-pip install -e ".[anthropic]"  # Anthropic only
-pip install -e ".[server]"     # FastAPI server
-pip install -e ".[mcp]"        # MCP server for IDE integration
-pip install -e ".[full]"       # All providers + server + MCP
-pip install -e ".[dev]"        # Development dependencies
+pip install -e ".[gemini]"      # Gemini only
+pip install -e ".[openai]"      # OpenAI only
+pip install -e ".[anthropic]"   # Anthropic only
+pip install -e ".[server]"      # FastAPI server
+pip install -e ".[mcp]"         # MCP server for IDE integration
+pip install -e ".[validation]"  # Proto syntax validation (grpcio-tools)
+pip install -e ".[full]"        # All providers + server + MCP + validation
+pip install -e ".[dev]"         # Development dependencies
 ```
 
 ---

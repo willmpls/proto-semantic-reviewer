@@ -5,6 +5,8 @@ This module provides optional authorization based on AD group membership.
 Authorization is disabled by default and enabled via ALLOWED_AD_GROUPS env var.
 """
 
+from __future__ import annotations
+
 import os
 import logging
 from fastapi import Request
