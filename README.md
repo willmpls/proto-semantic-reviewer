@@ -554,8 +554,24 @@ export OPENAI_HEADER_X_Environment=production
 | `ANTHROPIC_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | CA cert bundle for Anthropic |
 | `GEMINI_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | CA cert bundle for Gemini |
 | `LLM_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | Fallback CA cert for all providers |
+| `SSL_CERT_FILE` | `/etc/ssl/certs/ca-certificates.crt` | Standard OpenSSL env var (auto-detected) |
+| `REQUESTS_CA_BUNDLE` | `/etc/pki/tls/certs/ca-bundle.crt` | Common Python env var (auto-detected) |
 
-Provider-specific CA bundle takes precedence over `LLM_CA_BUNDLE`.
+**Precedence order:** Provider-specific → `LLM_CA_BUNDLE` → `SSL_CERT_FILE` → `REQUESTS_CA_BUNDLE`
+
+If your environment already sets `SSL_CERT_FILE` or `REQUESTS_CA_BUNDLE` (common in enterprise setups), the tool will automatically use them—no additional configuration needed.
+
+**Docker: CA bundle paths are inside the container.** Mount host certificates as a volume:
+
+```yaml
+# docker-compose.yml
+services:
+  proto-reviewer:
+    volumes:
+      - /host/path/to/corp-ca.pem:/etc/ssl/certs/custom-ca.pem:ro
+    environment:
+      - LLM_CA_BUNDLE=/etc/ssl/certs/custom-ca.pem
+```
 
 **Example: Corporate proxy with custom CA:**
 

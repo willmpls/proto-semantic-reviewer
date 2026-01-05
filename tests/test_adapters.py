@@ -120,6 +120,39 @@ class TestGetCaBundle:
             assert get_ca_bundle("ANTHROPIC") == "/path/to/anthropic-ca.pem"
             assert get_ca_bundle("GEMINI") == "/path/to/default-ca.pem"  # Falls back
 
+    def test_fallback_to_ssl_cert_file(self):
+        """Test fallback to SSL_CERT_FILE (standard OpenSSL env var)."""
+        with patch.dict(os.environ, {"SSL_CERT_FILE": "/etc/ssl/certs/ca-certificates.crt"}, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle == "/etc/ssl/certs/ca-certificates.crt"
+
+    def test_fallback_to_requests_ca_bundle(self):
+        """Test fallback to REQUESTS_CA_BUNDLE."""
+        with patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": "/etc/pki/tls/certs/ca-bundle.crt"}, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle == "/etc/pki/tls/certs/ca-bundle.crt"
+
+    def test_ssl_cert_file_precedence_over_requests(self):
+        """Test SSL_CERT_FILE takes precedence over REQUESTS_CA_BUNDLE."""
+        env = {
+            "SSL_CERT_FILE": "/ssl/cert/file.pem",
+            "REQUESTS_CA_BUNDLE": "/requests/ca/bundle.pem",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle == "/ssl/cert/file.pem"
+
+    def test_llm_ca_bundle_precedence_over_standard_vars(self):
+        """Test LLM_CA_BUNDLE takes precedence over SSL_CERT_FILE and REQUESTS_CA_BUNDLE."""
+        env = {
+            "LLM_CA_BUNDLE": "/llm/ca/bundle.pem",
+            "SSL_CERT_FILE": "/ssl/cert/file.pem",
+            "REQUESTS_CA_BUNDLE": "/requests/ca/bundle.pem",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle == "/llm/ca/bundle.pem"
+
 
 class TestGetBaseUrl:
     """Tests for get_base_url() function."""

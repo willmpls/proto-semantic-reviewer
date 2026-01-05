@@ -47,7 +47,11 @@ def get_ca_bundle(provider_prefix: str) -> Optional[str]:
     """
     Get CA certificate bundle path from environment.
 
-    Checks {PROVIDER}_CA_BUNDLE first, then falls back to LLM_CA_BUNDLE.
+    Checks in order of precedence:
+    1. {PROVIDER}_CA_BUNDLE (e.g., OPENAI_CA_BUNDLE)
+    2. LLM_CA_BUNDLE
+    3. SSL_CERT_FILE (standard OpenSSL env var)
+    4. REQUESTS_CA_BUNDLE (commonly used by Python HTTP libraries)
 
     Args:
         provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
@@ -55,7 +59,12 @@ def get_ca_bundle(provider_prefix: str) -> Optional[str]:
     Returns:
         Path to CA bundle file, or None if not configured
     """
-    return os.environ.get(f"{provider_prefix}_CA_BUNDLE") or os.environ.get("LLM_CA_BUNDLE")
+    return (
+        os.environ.get(f"{provider_prefix}_CA_BUNDLE")
+        or os.environ.get("LLM_CA_BUNDLE")
+        or os.environ.get("SSL_CERT_FILE")
+        or os.environ.get("REQUESTS_CA_BUNDLE")
+    )
 
 
 def get_base_url(provider_prefix: str) -> Optional[str]:
