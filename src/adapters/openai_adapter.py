@@ -45,8 +45,12 @@ class OpenAIAdapter(ModelAdapter):
             base_url=base_url,
             http_client=http_client,
         )
+
+        # Log configuration at INFO level for visibility
         if base_url:
-            logger.debug(f"OpenAI using custom base URL: {base_url}")
+            logger.info(f"OpenAI adapter configured with custom base URL: {base_url}")
+        else:
+            logger.info("OpenAI adapter using default base URL (api.openai.com)")
 
         self.model_name = model_name or self.default_model
 

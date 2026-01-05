@@ -44,8 +44,12 @@ class AnthropicAdapter(ModelAdapter):
             base_url=base_url,
             http_client=http_client,
         )
+
+        # Log configuration at INFO level for visibility
         if base_url:
-            logger.debug(f"Anthropic using custom base URL: {base_url}")
+            logger.info(f"Anthropic adapter configured with custom base URL: {base_url}")
+        else:
+            logger.info("Anthropic adapter using default base URL (api.anthropic.com)")
 
         self.model_name = model_name or self.default_model
 

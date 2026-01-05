@@ -48,13 +48,14 @@ class GeminiAdapter(ModelAdapter):
 
         self.client = genai.Client(**client_kwargs)
 
-        # Note: Gemini SDK base URL override may require vertexai=True or
-        # specific endpoint configuration. Log if custom URL requested.
+        # Log configuration at INFO level for visibility
         if base_url:
             logger.warning(
                 f"GEMINI_BASE_URL={base_url} is set but Gemini SDK may not support "
                 "direct base URL override. Consider using Vertex AI configuration instead."
             )
+        else:
+            logger.info("Gemini adapter using default base URL (generativelanguage.googleapis.com)")
 
         self.model_name = model_name or self.default_model
         self._types = types

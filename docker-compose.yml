@@ -23,6 +23,15 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       # Optional: force a specific provider (gemini, openai, anthropic)
       - MODEL_PROVIDER=${MODEL_PROVIDER:-}
+      # Optional: custom base URLs for API proxies
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-}
+      # Optional: custom CA certificate bundle
+      - LLM_CA_BUNDLE=${LLM_CA_BUNDLE:-}
+      - OPENAI_CA_BUNDLE=${OPENAI_CA_BUNDLE:-}
+      - ANTHROPIC_CA_BUNDLE=${ANTHROPIC_CA_BUNDLE:-}
+      - GEMINI_CA_BUNDLE=${GEMINI_CA_BUNDLE:-}
       # Optional: AD group authorization (comma-separated list)
       # When set, requests must include X-AD-Memberships header with matching group
       - ALLOWED_AD_GROUPS=${ALLOWED_AD_GROUPS:-}
@@ -55,6 +64,13 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - MODEL_PROVIDER=${MODEL_PROVIDER:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-}
+      - LLM_CA_BUNDLE=${LLM_CA_BUNDLE:-}
+      - OPENAI_CA_BUNDLE=${OPENAI_CA_BUNDLE:-}
+      - ANTHROPIC_CA_BUNDLE=${ANTHROPIC_CA_BUNDLE:-}
+      - GEMINI_CA_BUNDLE=${GEMINI_CA_BUNDLE:-}
       - ALLOWED_AD_GROUPS=${ALLOWED_AD_GROUPS:-}
       - STANDARDS_DIR=${STANDARDS_DIR:-}
     volumes:
@@ -79,6 +95,13 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - MODEL_PROVIDER=${MODEL_PROVIDER:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-}
+      - LLM_CA_BUNDLE=${LLM_CA_BUNDLE:-}
+      - OPENAI_CA_BUNDLE=${OPENAI_CA_BUNDLE:-}
+      - ANTHROPIC_CA_BUNDLE=${ANTHROPIC_CA_BUNDLE:-}
+      - GEMINI_CA_BUNDLE=${GEMINI_CA_BUNDLE:-}
       - STANDARDS_DIR=${STANDARDS_DIR:-}
     volumes:
       - ./protos:/protos:ro
