@@ -20,9 +20,26 @@ ENV PYTHONUNBUFFERED=1 \
 RUN groupadd --gid 1000 reviewer \
     && useradd --uid 1000 --gid reviewer --shell /bin/bash --create-home reviewer
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install curl for health checks and ca-certificates for custom CAs
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Custom CA certificate support (optional)
+# To use: place your CA cert(s) in the 'certs/' directory before building
+# Example:
+#   cp /path/to/corp-ca.pem certs/
+#   docker build -t proto-reviewer .
+# Any .crt or .pem files in certs/ will be installed as trusted CAs
+COPY certs/ /tmp/certs/
+RUN if ls /tmp/certs/*.pem /tmp/certs/*.crt 2>/dev/null; then \
+        cp /tmp/certs/*.pem /tmp/certs/*.crt /usr/local/share/ca-certificates/ 2>/dev/null || true && \
+        update-ca-certificates && \
+        echo "Custom CA certificate(s) installed"; \
+    fi && rm -rf /tmp/certs
+
+# Set SSL env vars for Python libraries (pip install + runtime)
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 # Set working directory
 WORKDIR /app

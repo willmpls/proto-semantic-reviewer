@@ -140,6 +140,9 @@ No local Python installation required. Just Docker.
 git clone https://github.com/your-org/proto-semantic-reviewer.git
 cd proto-semantic-reviewer
 
+# (Optional) For corporate proxies: add your CA certificate before building
+# cp /path/to/corp-ca.pem certs/
+
 # Set your API key (at least one required)
 export OPENAI_API_KEY=your-key
 # or: export ANTHROPIC_API_KEY=your-key
@@ -151,6 +154,8 @@ docker-compose up proto-reviewer
 # The server is now running at http://localhost:8000
 # Open http://localhost:8000/docs for interactive API documentation
 ```
+
+> **Behind a corporate proxy?** Place your CA certificate in the `certs/` directory before building. See [Custom CA Certificates](#custom-ca-certificates) for details.
 
 ### Review via HTTP API
 
@@ -552,7 +557,9 @@ export OPENAI_HEADER_Content_Type=application/json # → Content-Type
 export OPENAI_HEADER_X__Custom__Header=value       # → X_Custom_Header
 ```
 
-**Custom CA Certificates** (for corporate proxies or self-signed certs):
+#### Custom CA Certificates
+
+For corporate proxies or self-signed certificates:
 
 | Variable | Example | Description |
 |----------|---------|-------------|
@@ -567,7 +574,21 @@ export OPENAI_HEADER_X__Custom__Header=value       # → X_Custom_Header
 
 If your environment already sets `SSL_CERT_FILE` or `REQUESTS_CA_BUNDLE` (common in enterprise setups), the tool will automatically use them—no additional configuration needed.
 
-**Docker: CA bundle paths are inside the container.** Mount host certificates as a volume:
+**Docker: Build with custom CA certificates**
+
+Place your CA cert(s) in the `certs/` directory before building:
+
+```bash
+# Copy your corporate CA certificate
+cp /path/to/corp-ca.pem certs/
+
+# Build the image - certs are automatically installed
+docker build -t proto-reviewer .
+```
+
+The certificate is installed into the system CA store, so both `pip install` during build and runtime HTTPS requests will trust it. The `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` env vars are automatically set.
+
+**Alternative: Mount at runtime** (if you can't rebuild):
 
 ```yaml
 # docker-compose.yml

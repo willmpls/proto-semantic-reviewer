@@ -28,3 +28,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Custom CA certificates (keep directory, ignore actual certs)
+certs/*.pem
+certs/*.crt
+!certs/.gitkeep
