@@ -1,0 +1,123 @@
+id: 216
+title: States
+summary: |
+  State enums should be named State (not Status), use UNSPECIFIED as zero value,
+  distinguish resting states (ACTIVE, FAILED) from active states (CREATING, RUNNING),
+  and be marked OUTPUT_ONLY.
+
+guidance: |
+  ## Naming Conventions
+  - Use `State`, NOT `Status` (Status is reserved for HTTP/gRPC)
+  - Enum should be named `State` or end with `State`
+  - Nest within the resource message
+
+  ## Enum Value Categories
+
+  ### Resting States (indefinite without action)
+  - `ACTIVE` - available for use
+  - `FAILED` - terminated due to error
+  - `SUCCEEDED` - completed successfully
+  - `SUSPENDED` - temporarily inactive
+  - `DELETED` - soft deleted
+
+  ### Active States (self-resolving, use -ING suffix)
+  - `CREATING` - being created
+  - `DELETING` - being deleted
+  - `RUNNING` - executing
+  - `PENDING` - waiting to start
+  - `SUSPENDING` - being suspended
+
+  ### Default Value
+  - `STATE_UNSPECIFIED = 0` - never shown to users
+
+  ## Field Behavior
+  - State fields MUST be OUTPUT_ONLY (AIP-203)
+  - States should NOT be directly settable via Create/Update
+  - Use dedicated transition methods (`:publish`, `:archive`)
+
+  ## State Transitions
+  - Custom methods with POST verb for transitions
+  - Request must include resource `name` field
+  - Invalid transitions return FAILED_PRECONDITION
+
+  ## Evolution
+  - Adding new states is NOT a breaking change
+  - Document that clients should expect future additions
+
+rules:
+  - id: AIP-216-STATE-NOT-STATUS
+    description: Use State not Status for lifecycle enums
+    check_guidance: Status is reserved for HTTP/gRPC error codes
+    violations:
+      - "enum Status for resource lifecycle"
+      - "enum OrderStatus (should be OrderState or State)"
+      - "field named 'status' for lifecycle state"
+    good_example: |
+      message Book {
+        enum State {
+          STATE_UNSPECIFIED = 0;
+          ACTIVE = 1;
+          DELETED = 2;
+        }
+        State state = 1;
+      }
+    bad_example: |
+      message Book {
+        enum Status {           // Use State not Status
+          STATUS_UNSPECIFIED = 0;
+          ACTIVE = 1;
+        }
+        Status status = 1;      // Use state not status
+      }
+
+  - id: AIP-216-RESTING-VS-ACTIVE
+    description: Use past participle for resting states, -ING for active
+    check_guidance: Active states use present participle (CREATING), resting use past (CREATED)
+    violations:
+      - "CREATED as active state (should be CREATING)"
+      - "DELETING as final state (should be DELETED)"
+      - "READY instead of ACTIVE"
+    good_example: |
+      enum State {
+        STATE_UNSPECIFIED = 0;
+        CREATING = 1;    // active: in progress
+        ACTIVE = 2;      // resting: available
+        DELETING = 3;    // active: in progress
+        DELETED = 4;     // resting: final
+      }
+    bad_example: |
+      enum State {
+        STATE_UNSPECIFIED = 0;
+        CREATE = 1;      // use CREATING (active) or CREATED (resting)
+        READY = 2;       // use ACTIVE
+        DELETE = 3;      // use DELETING (active) or DELETED (resting)
+      }
+
+  - id: AIP-216-STATE-OUTPUT-ONLY
+    description: State fields must be OUTPUT_ONLY
+    check_guidance: State should not be settable via Create/Update
+    violations:
+      - "State field without OUTPUT_ONLY annotation"
+      - "State field that can be set in Create/Update request"
+    good_example: |
+      State state = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+    bad_example: |
+      State state = 1;  // missing OUTPUT_ONLY
+
+  - id: AIP-216-UNSPECIFIED-ZERO
+    description: State enum must have UNSPECIFIED as zero value
+    check_guidance: First enum value should be STATE_UNSPECIFIED = 0
+    violations:
+      - "State enum starting with ACTIVE = 0"
+      - "Missing STATE_UNSPECIFIED"
+    good_example: |
+      enum State {
+        STATE_UNSPECIFIED = 0;
+        ACTIVE = 1;
+        SUSPENDED = 2;
+      }
+    bad_example: |
+      enum State {
+        ACTIVE = 0;      // should be STATE_UNSPECIFIED = 0
+        SUSPENDED = 1;
+      }

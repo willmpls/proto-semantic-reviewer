@@ -1,0 +1,30 @@
+id: 180
+title: Backwards Compatibility
+summary: |
+  APIs should maintain backwards compatibility. Certain changes are safe
+  (adding fields) while others are breaking (removing fields, changing types).
+
+rules:
+  - id: AIP-180-FIELD-OPTIONALITY
+    description: New fields should be optional to maintain compatibility
+    check_guidance: Added fields should not be required without versioning
+    violations:
+      - "Adding a required field to an existing message"
+
+  - id: AIP-180-ENUM-UNKNOWN
+    description: Enums should have an UNSPECIFIED value
+    check_guidance: First enum value should be SOMETHING_UNSPECIFIED = 0
+    violations:
+      - "Enum starting with a meaningful value instead of UNSPECIFIED"
+      - "Missing the _UNSPECIFIED suffix"
+    good_example: |
+      enum State {
+        STATE_UNSPECIFIED = 0;
+        ACTIVE = 1;
+        INACTIVE = 2;
+      }
+    bad_example: |
+      enum State {
+        ACTIVE = 0;   // Should be STATE_UNSPECIFIED = 0
+        INACTIVE = 1;
+      }

@@ -1,0 +1,52 @@
+id: 132
+title: "Standard Methods: List"
+summary: |
+  The List method retrieves a collection of resources. It should support
+  pagination via page_size and page_token. The response should contain the
+  resources and a next_page_token.
+
+rules:
+  - id: AIP-132-PAGINATION-REQUEST
+    description: List requests should have page_size and page_token fields
+    check_guidance: Check for int32 page_size and string page_token in List requests
+    violations:
+      - "Missing pagination fields entirely"
+      - "Using 'limit' and 'offset' instead of page_size/page_token"
+      - "page_size as int64 instead of int32"
+    good_example: |
+      message ListBooksRequest {
+        string parent = 1 [(google.api.field_behavior) = REQUIRED];
+        int32 page_size = 2;
+        string page_token = 3;
+      }
+    bad_example: |
+      message ListBooksRequest {
+        string parent = 1;
+        int64 limit = 2;    // Should be int32 page_size
+        int64 offset = 3;   // Should be string page_token
+      }
+
+  - id: AIP-132-PAGINATION-RESPONSE
+    description: List responses should have resource collection and next_page_token
+    check_guidance: Check for repeated resource field and string next_page_token
+    violations:
+      - "Missing next_page_token"
+      - "Resource field not named after the resource (should be 'books' not 'results')"
+      - "Using 'items' instead of the resource name"
+    good_example: |
+      message ListBooksResponse {
+        repeated Book books = 1;
+        string next_page_token = 2;
+      }
+    bad_example: |
+      message ListBooksResponse {
+        repeated Book items = 1;     // Should be 'books'
+        bool has_more = 2;           // Should be 'string next_page_token'
+      }
+
+  - id: AIP-132-PARENT-FIELD
+    description: List requests should have a parent field for hierarchy
+    check_guidance: Check that List requests have 'string parent' as field 1
+    violations:
+      - "Missing parent field when listing child resources"
+      - "Using a different field name like 'publisher_id'"

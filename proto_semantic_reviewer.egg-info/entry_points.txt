@@ -1,0 +1,3 @@
+[console_scripts]
+proto-reviewer = src.__main__:main
+proto-semantic-reviewer = src.__main__:main

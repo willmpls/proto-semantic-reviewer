@@ -1,0 +1,100 @@
+id: 213
+title: Common Components
+summary: |
+  APIs should use established common protobuf types from google.protobuf.*,
+  google.type.*, google.api.*, and google.rpc.* instead of defining custom types.
+
+guidance: |
+  ## Recommended Common Components
+
+  ### google.protobuf.* (Core Types)
+  - `Timestamp` - points in time
+  - `Duration` - time spans
+  - `Struct` - JSON-like structures
+  - `Any` - arbitrary messages (use sparingly)
+  - `Empty` - empty request/response
+  - `FieldMask` - partial updates
+
+  ### google.type.* (Standard Library)
+  - `Money` - monetary amounts with currency
+  - `Date` - calendar dates without time
+  - `TimeOfDay` - wall-clock time without date
+  - `DateTime` - civil timestamps with timezone
+  - `LatLng` - geographic coordinates
+  - `PostalAddress` - postal addresses
+  - `PhoneNumber` - phone numbers
+  - `Color` - RGB/RGBA colors
+  - `Interval` - time intervals
+  - `Expr` - CEL expressions
+
+  ### google.api.* (API Utilities)
+  - Field behavior annotations
+  - Resource annotations
+  - HTTP transcoding rules
+
+  ### google.rpc.* (RPC Components)
+  - `Status` - error details
+  - Error codes and messages
+
+  ### google.longrunning.*
+  - `Operation` - long-running operations
+
+  ## Key Constraints
+  - Common components MUST NOT be moved between packages
+  - Fields MUST NOT be removed from existing messages
+  - Values MUST NOT be removed from existing enums
+
+rules:
+  - id: AIP-213-USE-COMMON-TYPES
+    description: Use common types instead of defining custom equivalents
+    check_guidance: Don't reinvent standard types
+    violations:
+      - "Custom Timestamp message instead of google.protobuf.Timestamp"
+      - "Custom Money message instead of google.type.Money"
+      - "Custom Duration message instead of google.protobuf.Duration"
+      - "Custom LatLng message instead of google.type.LatLng"
+      - "Custom Date message instead of google.type.Date"
+    good_example: |
+      import "google/protobuf/timestamp.proto";
+      import "google/type/money.proto";
+
+      message Order {
+        google.protobuf.Timestamp create_time = 1;
+        google.type.Money total = 2;
+      }
+    bad_example: |
+      // Don't define custom types that duplicate common ones
+      message MyTimestamp {
+        int64 seconds = 1;
+        int32 nanos = 2;
+      }
+
+      message MyMoney {
+        string currency = 1;
+        double amount = 2;  // also wrong - loses precision
+      }
+
+  - id: AIP-213-IMPORT-COMMON-PROTOS
+    description: Import common protos rather than copying definitions
+    check_guidance: Use imports to googleapis/api-common-protos
+    violations:
+      - "Copying google.protobuf types into local protos"
+      - "Redefining standard message structures"
+    good_example: |
+      import "google/protobuf/duration.proto";
+      import "google/protobuf/field_mask.proto";
+      import "google/type/date.proto";
+
+  - id: AIP-213-EMPTY-MESSAGE
+    description: Use google.protobuf.Empty for empty request/response
+    check_guidance: Don't define custom empty messages
+    violations:
+      - "Custom Empty or Void message"
+      - "Empty message definition instead of google.protobuf.Empty"
+    good_example: |
+      import "google/protobuf/empty.proto";
+
+      rpc DeleteBook(DeleteBookRequest) returns (google.protobuf.Empty);
+    bad_example: |
+      message Empty {}  // use google.protobuf.Empty
+      message Void {}   // use google.protobuf.Empty

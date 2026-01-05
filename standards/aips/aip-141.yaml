@@ -1,0 +1,23 @@
+id: 141
+title: Quantities
+summary: |
+  Quantity fields represent counts or amounts of discrete items. Use int32 or int64
+  for whole number counts. For fractional quantities, consider using a decimal
+  representation rather than floating point to avoid precision issues.
+
+rules:
+  - id: AIP-141-COUNT-TYPE
+    description: Count/quantity fields should use integer types
+    check_guidance: Fields representing counts should be int32 or int64, not float/double
+    violations:
+      - "float quantity (should be int32 for whole items)"
+      - "double count (should be int64 for large counts)"
+    good_example: "int32 quantity = 1;"
+    bad_example: "float quantity = 1;  // Precision issues for counts"
+
+  - id: AIP-141-FRACTIONAL-QUANTITIES
+    description: Fractional quantities should avoid floating point
+    check_guidance: For fractional amounts, consider decimal representation or fixed-point
+    violations:
+      - "double weight (consider units + nanos pattern)"
+      - "float percentage (consider basis points as int32)"

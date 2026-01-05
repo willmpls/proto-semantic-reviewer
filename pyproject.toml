@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proto-semantic-reviewer"
+version = "0.2.0"
+description = "An AI-powered agent that reviews Protocol Buffer definitions for semantic correctness"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["protobuf", "grpc", "api", "linter", "semantic", "events", "kafka", "messaging"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+
+# Core dependencies (required)
+dependencies = [
+    "pyyaml>=6.0",  # For loading standards from YAML files
+]
+
+[project.optional-dependencies]
+# Individual model providers
+gemini = ["google-genai>=1.0.0"]
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.18.0"]
+
+# All model providers
+all = [
+    "google-genai>=1.0.0",
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+]
+
+# HTTP server
+server = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0.0",
+]
+
+# MCP server for IDE integration
+mcp = ["mcp>=1.0.0"]
+
+# Full installation (all providers + server + MCP)
+full = [
+    "google-genai>=1.0.0",
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0.0",
+    "mcp>=1.0.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.26.0",
+]
+
+[project.scripts]
+proto-reviewer = "src.__main__:main"
+proto-semantic-reviewer = "src.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/proto-semantic-reviewer"
+Documentation = "https://github.com/your-org/proto-semantic-reviewer#readme"
+Repository = "https://github.com/your-org/proto-semantic-reviewer"
+Issues = "https://github.com/your-org/proto-semantic-reviewer/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

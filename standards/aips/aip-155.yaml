@@ -1,0 +1,14 @@
+id: 155
+title: Request Identification
+summary: |
+  Mutating requests may include a request_id for idempotency. This allows
+  clients to safely retry requests without causing duplicate operations.
+
+rules:
+  - id: AIP-155-REQUEST-ID
+    description: Mutating requests should support request_id for idempotency
+    check_guidance: Create/Update/Delete requests should consider request_id field
+    violations:
+      - "Missing request_id on non-idempotent operations"
+      - "Using 'idempotency_key' instead of 'request_id'"
+    good_example: "string request_id = 4 [(google.api.field_behavior) = OPTIONAL];"

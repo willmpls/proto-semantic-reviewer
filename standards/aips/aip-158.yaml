@@ -1,0 +1,25 @@
+id: 158
+title: Pagination
+summary: |
+  List methods must support pagination. Use page_token (not offset) for
+  stable pagination. page_size should be int32 with a reasonable default.
+
+rules:
+  - id: AIP-158-TOKEN-NOT-OFFSET
+    description: Use token-based pagination, not offset
+    check_guidance: Check for page_token, not offset or skip parameters
+    violations:
+      - "Using 'offset' and 'limit' instead of page_token/page_size"
+      - "Using page numbers instead of opaque tokens"
+
+  - id: AIP-158-PAGE-SIZE-TYPE
+    description: page_size should be int32
+    check_guidance: page_size must be int32, not int64
+    violations:
+      - "int64 page_size (should be int32)"
+
+  - id: AIP-158-MAX-PAGE-SIZE
+    description: APIs should enforce a maximum page size
+    check_guidance: Consider documenting max page size in field comments
+    violations:
+      - "No maximum page size documented or enforced"

@@ -1,0 +1,139 @@
+id: 140
+title: Field Names
+summary: |
+  Field names must use lower_snake_case. Avoid prepositions, use standard
+  abbreviations, place adjectives before nouns, use nouns not verbs, and
+  follow boolean naming conventions.
+
+guidance: |
+  ## Case Requirements
+  - Field names MUST use `lower_snake_case`
+  - Words cannot start with numbers
+  - No leading, trailing, or adjacent underscores
+
+  ## Pluralization
+  - Repeated fields MUST use plural names (`books`, `authors`)
+  - Singular fields MUST use singular names (`book`, `author`)
+
+  ## Prepositions
+  Avoid prepositions (with, for, at, by):
+  - Use `error_reason` not `reason_for_error`
+  - Use `creator` not `created_by_user`
+
+  ## Abbreviations
+  Use well-known abbreviations:
+  - `config` not `configuration`
+  - `id` not `identifier`
+  - `spec` not `specification`
+  - `stats` not `statistics`
+  - Units: `distance_km`, `width_px`
+
+  ## Adjectives
+  Place adjectives BEFORE nouns:
+  - `collected_items` not `items_collected`
+  - `max_results` not `results_max`
+
+  ## Nouns vs Verbs
+  Field names MUST be nouns, not verbs:
+  - `disabled` not `disable`
+  - `enabled` not `enable`
+
+  ## Booleans
+  - Omit `is_` prefix: use `required` not `is_required`
+  - Exception: conflicts with reserved words
+
+  ## URIs vs URLs
+  - Use `uri` for arbitrary URIs
+  - Use `url` only for URL-specific fields
+  - All URLs are URIs, but not all URIs are URLs
+
+  ## Display Names
+  - `display_name` - human-readable, no uniqueness required
+  - `title` - official/formal name
+
+  ## Reserved Names
+  - Don't use field names matching the message name
+  - Avoid conflicts with language keywords
+
+rules:
+  - id: AIP-140-SNAKE-CASE
+    description: Field names must use lower_snake_case
+    check_guidance: Check for camelCase, PascalCase, or invalid characters
+    violations:
+      - "camelCase field names (userName should be user_name)"
+      - "PascalCase field names (UserName should be user_name)"
+      - "Leading/trailing underscores (_field_ should be field)"
+    good_example: |
+      string user_name = 1;
+      int32 max_results = 2;
+    bad_example: |
+      string userName = 1;   // camelCase
+      string UserName = 2;   // PascalCase
+
+  - id: AIP-140-PREPOSITIONS
+    description: Avoid prepositions in field names
+    check_guidance: Field names should not include with, for, at, by, to
+    violations:
+      - "'reason_for_error' should be 'error_reason'"
+      - "'created_by_user' should be 'creator'"
+      - "'assigned_to' should be 'assignee'"
+      - "'sent_at' should be 'send_time'"
+    good_example: |
+      string error_reason = 1;
+      string creator = 2;
+    bad_example: |
+      string reason_for_error = 1;
+      string created_by_user = 2;
+
+  - id: AIP-140-ABBREVIATIONS
+    description: Use standard abbreviations for common terms
+    check_guidance: Use config, id, spec, stats instead of full words
+    violations:
+      - "'configuration' should be 'config'"
+      - "'identifier' should be 'id'"
+      - "'specification' should be 'spec'"
+      - "'statistics' should be 'stats'"
+    good_example: |
+      string config = 1;
+      string request_id = 2;
+    bad_example: |
+      string configuration = 1;
+      string request_identifier = 2;
+
+  - id: AIP-140-ADJECTIVE-ORDER
+    description: Place adjectives before nouns in field names
+    check_guidance: Adjectives should precede nouns
+    violations:
+      - "'items_collected' should be 'collected_items'"
+      - "'results_max' should be 'max_results'"
+      - "'time_create' should be 'create_time'"
+    good_example: |
+      repeated Item collected_items = 1;
+      int32 max_results = 2;
+
+  - id: AIP-140-NOUNS-NOT-VERBS
+    description: Field names must be nouns, not verbs
+    check_guidance: Fields represent state, not actions
+    violations:
+      - "'disable' should be 'disabled'"
+      - "'enable' should be 'enabled'"
+      - "'delete' should be 'deleted'"
+    good_example: |
+      bool disabled = 1;
+      bool enabled = 2;
+    bad_example: |
+      bool disable = 1;  // verb form
+
+  - id: AIP-140-BOOLEAN-PREFIX
+    description: Boolean fields should omit is_ prefix
+    check_guidance: Use required not is_required
+    violations:
+      - "'is_required' should be 'required'"
+      - "'is_active' should be 'active'"
+      - "'is_enabled' should be 'enabled'"
+    good_example: |
+      bool required = 1;
+      bool active = 2;
+    bad_example: |
+      bool is_required = 1;
+      bool is_active = 2;

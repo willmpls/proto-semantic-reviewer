@@ -1,0 +1,122 @@
+// Example of a well-designed event message following best practices
+syntax = "proto3";
+
+package example.orders.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option java_package = "com.example.orders.v1";
+option java_multiple_files = true;
+
+// Reusable event metadata - include in all events
+message EventMetadata {
+  // Unique identifier for this event instance (for idempotency)
+  string event_id = 1;
+
+  // Fully qualified event type for routing
+  string event_type = 2;
+
+  // When the event occurred (business time)
+  google.protobuf.Timestamp event_time = 3;
+
+  // When the event was published to the message bus
+  google.protobuf.Timestamp published_at = 4;
+
+  // Correlation ID - links related events in a saga/transaction
+  string correlation_id = 5;
+
+  // Causation ID - ID of the event that caused this one
+  string causation_id = 6;
+
+  // OpenTelemetry tracing context
+  string trace_id = 7;
+  string span_id = 8;
+
+  // Source service that produced this event
+  string source = 9;
+
+  // Schema version for evolution
+  int32 schema_version = 10;
+}
+
+// Event: Order was created
+message OrderCreatedEvent {
+  EventMetadata metadata = 1;
+
+  // The order that was created
+  Order order = 2;
+
+  // Who created the order
+  string created_by = 3;
+
+  // Optional context
+  map<string, string> context = 4;
+}
+
+// Event: Order status changed
+message OrderStatusChangedEvent {
+  EventMetadata metadata = 1;
+
+  // Order identifier
+  string order_id = 2;
+
+  // Previous status
+  OrderStatus previous_status = 3;
+
+  // New status
+  OrderStatus new_status = 4;
+
+  // Optional reason for the change
+  optional string reason = 5;
+
+  // Who/what triggered the change
+  string changed_by = 6;
+}
+
+// Event: Order item added
+message OrderItemAddedEvent {
+  EventMetadata metadata = 1;
+
+  string order_id = 2;
+  OrderItem item = 3;
+
+  // New order total after adding item
+  Money new_total = 4;
+}
+
+// Order entity (included in events as payload)
+message Order {
+  string order_id = 1;
+  string customer_id = 2;
+  repeated OrderItem items = 3;
+  Money total = 4;
+  OrderStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message OrderItem {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  Money unit_price = 4;
+}
+
+// Simple money type (in production, use google.type.Money)
+message Money {
+  string currency_code = 1;  // ISO 4217 currency code
+  int64 units = 2;           // Whole units
+  int32 nanos = 3;           // Nano units (10^-9)
+}
+
+// Order status with proper UNSPECIFIED value
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CONFIRMED = 2;
+  ORDER_STATUS_PROCESSING = 3;
+  ORDER_STATUS_SHIPPED = 4;
+  ORDER_STATUS_DELIVERED = 5;
+  ORDER_STATUS_CANCELLED = 6;
+}

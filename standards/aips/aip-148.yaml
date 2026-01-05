@@ -1,0 +1,37 @@
+id: 148
+title: Standard Fields
+summary: |
+  Resources should include standard fields for common metadata: create_time,
+  update_time, delete_time (soft delete), etag (concurrency), uid (system ID).
+
+rules:
+  - id: AIP-148-CREATE-UPDATE-TIME
+    description: Resources should have create_time and update_time
+    check_guidance: Check for both create_time and update_time Timestamp fields
+    violations:
+      - "Having create_time but missing update_time"
+      - "Using non-standard names like 'created' or 'modified'"
+    good_example: |
+      google.protobuf.Timestamp create_time = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+      google.protobuf.Timestamp update_time = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  - id: AIP-148-ETAG
+    description: Resources supporting concurrent updates should have etag
+    check_guidance: Resources with Update methods should consider including etag
+    violations:
+      - "Missing etag for resources with update operations"
+      - "Using 'version' instead of 'etag'"
+
+  - id: AIP-148-UID
+    description: Resources may include a system-generated uid
+    check_guidance: uid should be string type and OUTPUT_ONLY
+    violations:
+      - "Using int64 for uid"
+      - "Calling it 'uuid' instead of 'uid'"
+
+  - id: AIP-148-DELETE-TIME
+    description: Soft-deletable resources should have delete_time
+    check_guidance: Resources with soft delete should have delete_time Timestamp
+    violations:
+      - "Using boolean 'is_deleted' instead of 'delete_time'"
+      - "Using 'deleted_at' instead of 'delete_time'"

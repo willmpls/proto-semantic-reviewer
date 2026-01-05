@@ -1,0 +1,92 @@
+id: 144
+title: Repeated Fields
+summary: |
+  Repeated fields must use plural names, have enforced size limits (~100 max),
+  use message types for extensibility, and never inline other resource bodies.
+
+guidance: |
+  ## Naming
+  - Repeated fields MUST use plural names (`books`, `authors`)
+  - For words with identical singular/plural (moose, info), use dictionary form
+
+  ## Type Selection
+  - Use scalar types (string, int) if no additional data needed
+  - Use message types if future expansion is likely
+  - Avoid parallel repeated scalar fields - use a message instead
+
+  ## Size Constraints
+  - SHOULD have enforced upper bound (~100 elements max)
+  - Single resource payload should not become too large
+  - For larger datasets, use sub-resources instead
+
+  ## Anti-Patterns
+  - MUST NOT inline bodies of other resources
+  - Instead, include resource names (references) to associated resources
+  - Don't use for data too large for single payload
+
+  ## Update Strategies
+  - Standard Update method: suitable for small lists
+  - Custom Add/Remove methods: for atomic modifications
+  - Declarative-friendly resources must use only Update methods
+
+rules:
+  - id: AIP-144-PLURAL-NAMES
+    description: Repeated fields must use plural names
+    check_guidance: Check that repeated fields have plural names
+    violations:
+      - "repeated string tag (should be 'tags')"
+      - "repeated Item item (should be 'items')"
+      - "repeated User user (should be 'users')"
+    good_example: |
+      repeated string tags = 1;
+      repeated Item items = 2;
+    bad_example: |
+      repeated string tag = 1;   // should be tags
+      repeated Item item = 2;    // should be items
+
+  - id: AIP-144-SIZE-LIMITS
+    description: Repeated fields should have reasonable size limits
+    check_guidance: Large collections should use sub-resources, not repeated fields
+    violations:
+      - "Unbounded repeated fields for potentially large collections"
+      - "repeated fields for items that could exceed ~100 elements"
+    good_example: |
+      // For small, bounded collections
+      repeated string labels = 1;  // max ~100
+
+      // For large collections, use sub-resources
+      // GET /books/{book}/chapters instead of repeated Chapter
+    bad_example: |
+      // Don't embed potentially large collections
+      repeated LogEntry log_entries = 1;  // could be thousands
+
+  - id: AIP-144-MESSAGE-EXTENSIBILITY
+    description: Use message types for repeated fields that may need extension
+    check_guidance: Avoid parallel repeated scalar fields
+    violations:
+      - "Parallel repeated fields (repeated string keys + repeated string values)"
+      - "Repeated scalars when additional metadata might be needed"
+    good_example: |
+      message KeyValue {
+        string key = 1;
+        string value = 2;
+        string description = 3;  // easy to extend
+      }
+      repeated KeyValue attributes = 1;
+    bad_example: |
+      // Hard to extend, must stay synchronized
+      repeated string attribute_keys = 1;
+      repeated string attribute_values = 2;
+
+  - id: AIP-144-NO-INLINE-RESOURCES
+    description: Do not inline other resource bodies in repeated fields
+    check_guidance: Use resource names/references instead of full resource bodies
+    violations:
+      - "Embedding full resource objects in repeated fields"
+      - "Duplicating resource data instead of referencing"
+    good_example: |
+      // Reference by name
+      repeated string book_names = 1;  // "publishers/123/books/456"
+    bad_example: |
+      // Don't embed full resources
+      repeated Book books = 1;  // duplicates data, sync issues

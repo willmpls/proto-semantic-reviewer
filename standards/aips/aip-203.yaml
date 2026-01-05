@@ -1,0 +1,26 @@
+id: 203
+title: Field Behavior
+summary: |
+  Fields should be annotated with their behavior: REQUIRED, OPTIONAL, OUTPUT_ONLY,
+  INPUT_ONLY, IMMUTABLE. This documents the field's contract clearly.
+
+rules:
+  - id: AIP-203-OUTPUT-ONLY
+    description: Server-generated fields should be OUTPUT_ONLY
+    check_guidance: Fields like create_time, update_time, uid should be OUTPUT_ONLY
+    violations:
+      - "create_time without OUTPUT_ONLY annotation"
+      - "Server-computed fields that clients shouldn't set"
+    good_example: "google.protobuf.Timestamp create_time = 5 [(google.api.field_behavior) = OUTPUT_ONLY];"
+
+  - id: AIP-203-REQUIRED
+    description: Required fields should be annotated as REQUIRED
+    check_guidance: Fields that must be set should have REQUIRED annotation
+    violations:
+      - "Required field without annotation, relying on documentation only"
+
+  - id: AIP-203-IMMUTABLE
+    description: Fields that cannot be changed after creation should be IMMUTABLE
+    check_guidance: Fields set only at creation time should be IMMUTABLE
+    violations:
+      - "Parent or name fields without IMMUTABLE annotation"

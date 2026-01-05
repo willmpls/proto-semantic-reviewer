@@ -1,0 +1,41 @@
+id: ORG-001
+title: Event Identification
+summary: |
+  Every event message must have a unique event_id field for idempotency and
+  deduplication. The event_id should be immutable and assigned at creation time.
+  This enables consumers to safely process events exactly once.
+
+applies_to: "messages ending in Event, Created, Updated, Deleted, Changed"
+
+related_aips:
+  - AIP-155
+
+rules:
+  - id: ORG-001-EVENT-ID
+    description: Event messages must have a unique event_id field
+    check_guidance: Check for event_id or equivalent unique identifier field in event messages
+    violations:
+      - "Missing event_id entirely"
+      - "Using entity ID (order_id) instead of event ID"
+      - "Using auto-increment integers instead of UUIDs"
+      - "Making event_id mutable"
+    good_example: |
+      message OrderCreatedEvent {
+        // Unique identifier for this specific event instance
+        string event_id = 1;
+
+        // The entity this event is about (separate from event_id)
+        string order_id = 2;
+
+        // When the event occurred
+        google.protobuf.Timestamp event_time = 3;
+
+        // Event payload
+        Order order = 4;
+      }
+    bad_example: |
+      // BAD: Missing event_id - cannot deduplicate events
+      message OrderCreated {
+        string order_id = 1;  // This is the entity ID, not event ID
+        Order order = 2;
+      }

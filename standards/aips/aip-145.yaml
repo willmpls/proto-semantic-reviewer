@@ -1,0 +1,77 @@
+id: 145
+title: Ranges
+summary: |
+  Ranges should use start_/end_ prefixes with half-closed intervals [start, end).
+  For colloquial ranges (dates, days of week), use first_/last_ with inclusive bounds.
+
+guidance: |
+  ## Basic Structure
+  - Use two separate fields of the same type
+  - Use `start_` and `end_` prefixes
+
+  ## Default Convention: Half-Closed Intervals
+  Most ranges should use inclusive start, exclusive end: [start_xxx, end_xxx)
+
+  Benefits:
+  - Aligns with programming conventions (C++, Java, Python, Go)
+  - Works naturally with continuous values like timestamps
+  - Adjacent ranges fit together: [0, x), [x, y), [y, z)
+
+  ## Timestamp Intervals
+  - Consider using `google.type.Interval` for timestamp ranges
+  - Or use separate timestamp fields with interval metadata
+
+  ## Exception: Colloquial Precedent
+  When cultural convention expects both boundaries inclusive:
+  - Date ranges: "April 21-23" (both inclusive)
+  - Day-of-week ranges: "Monday through Friday"
+
+  For these, use `first_` and `last_` prefixes instead:
+  - `first_date` / `last_date`
+  - `first_day` / `last_day`
+
+  ## Documentation
+  - MUST clearly document whether each boundary is inclusive/exclusive
+  - Especially important if mixing both patterns
+
+rules:
+  - id: AIP-145-RANGE-PREFIXES
+    description: Use start_/end_ for half-closed ranges, first_/last_ for inclusive
+    check_guidance: Check range field naming follows conventions
+    violations:
+      - "'begin_time' should be 'start_time'"
+      - "'min_value'/'max_value' for ranges should be 'start_value'/'end_value'"
+      - "Mixing conventions (start_date with last_date)"
+    good_example: |
+      // Half-closed interval [start, end)
+      google.protobuf.Timestamp start_time = 1;
+      google.protobuf.Timestamp end_time = 2;
+
+      // Inclusive interval for colloquial ranges
+      google.type.Date first_date = 3;
+      google.type.Date last_date = 4;
+    bad_example: |
+      google.protobuf.Timestamp begin_time = 1;  // use start_
+      google.protobuf.Timestamp finish_time = 2; // use end_
+
+  - id: AIP-145-MATCHING-TYPES
+    description: Range start and end fields must have matching types
+    check_guidance: Both range boundaries should use the same type
+    violations:
+      - "start_time as Timestamp with end_time as string"
+      - "start_value as int32 with end_value as int64"
+    good_example: |
+      int64 start_value = 1;
+      int64 end_value = 2;
+    bad_example: |
+      int32 start_value = 1;
+      int64 end_value = 2;  // type mismatch
+
+  - id: AIP-145-TIMESTAMP-INTERVAL
+    description: Consider google.type.Interval for timestamp ranges
+    check_guidance: For timestamp ranges, Interval type provides standard semantics
+    violations:
+      - "Separate start/end timestamps without clear interval documentation"
+    good_example: |
+      import "google/type/interval.proto";
+      google.type.Interval time_range = 1;

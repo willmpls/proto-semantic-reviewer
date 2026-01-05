@@ -1,0 +1,121 @@
+id: 126
+title: Enumerations
+summary: |
+  Enum values must use UPPER_SNAKE_CASE with an UNSPECIFIED default value.
+  Enums are appropriate for infrequently changing values; use strings for
+  standardized codes or frequently changing values.
+
+guidance: |
+  ## Naming Conventions
+
+  - Enum values MUST use UPPER_SNAKE_CASE
+  - First value MUST be `{ENUM_NAME}_UNSPECIFIED = 0` (unless a useful zero value exists)
+  - Non-zero values in nested enums should NOT be prefixed with enum name
+  - Package-level enum values SHOULD be prefixed with enum name (prevents C++ collisions)
+
+  ## Structure
+
+  - Enums used in single message: nest within that message, declare before use
+  - Enums used across messages: declare at package level, typically at file bottom
+
+  ## When to Use Enums
+
+  Use enums when:
+  - Values change infrequently (ideally no more than once per year)
+  - No competing standard representation exists
+
+  Do NOT use enums when:
+  - Standardized codes exist (language codes, media types, currency) - use string
+  - Values change frequently - use documented string with kebab-case
+
+  ## Enum Evolution
+
+  - Enum values MAY be freely added to request-only enums
+  - Adding values to response enums requires caution (clients may not handle new values)
+  - Document whether enum is frozen or expects additions
+
+  ## Boolean Alternative
+
+  Boolean fields may substitute for enums ONLY when:
+  - Absolute certainty exists that no additional values will ever be needed
+  - `false` is the sensible default
+
+rules:
+  - id: AIP-126-UNSPECIFIED-VALUE
+    description: Enums must have an UNSPECIFIED first value
+    check_guidance: First enum value should be {NAME}_UNSPECIFIED = 0
+    violations:
+      - "Enum starting with meaningful value (e.g., ACTIVE = 0)"
+      - "Missing _UNSPECIFIED suffix on zero value"
+      - "UNSPECIFIED not at position 0"
+    good_example: |
+      enum State {
+        STATE_UNSPECIFIED = 0;
+        STATE_ACTIVE = 1;
+        STATE_INACTIVE = 2;
+      }
+    bad_example: |
+      enum State {
+        ACTIVE = 0;      // Should be STATE_UNSPECIFIED = 0
+        INACTIVE = 1;
+      }
+
+  - id: AIP-126-UPPER-SNAKE-CASE
+    description: Enum values must use UPPER_SNAKE_CASE
+    check_guidance: Check that enum values are uppercase with underscores
+    violations:
+      - "camelCase enum values"
+      - "PascalCase enum values"
+      - "lowercase enum values"
+    good_example: |
+      enum Priority {
+        PRIORITY_UNSPECIFIED = 0;
+        PRIORITY_HIGH = 1;
+        PRIORITY_MEDIUM = 2;
+        PRIORITY_LOW = 3;
+      }
+    bad_example: |
+      enum Priority {
+        Unspecified = 0;  // Wrong: PascalCase
+        high = 1;         // Wrong: lowercase
+        Medium = 2;       // Wrong: PascalCase
+      }
+
+  - id: AIP-126-PACKAGE-LEVEL-PREFIX
+    description: Package-level enum values should be prefixed with enum name
+    check_guidance: Top-level enums need prefixes to avoid C++ namespace collisions
+    violations:
+      - "Package-level enum with unprefixed values"
+    good_example: |
+      // At package level
+      enum OrderStatus {
+        ORDER_STATUS_UNSPECIFIED = 0;
+        ORDER_STATUS_PENDING = 1;
+        ORDER_STATUS_SHIPPED = 2;
+      }
+    bad_example: |
+      // At package level - missing prefix causes C++ collisions
+      enum OrderStatus {
+        UNSPECIFIED = 0;
+        PENDING = 1;
+        SHIPPED = 2;
+      }
+
+  - id: AIP-126-AVOID-ENUM-FOR-CODES
+    description: Use strings instead of enums for standardized codes
+    check_guidance: Language codes, currency codes, media types should be strings, not enums
+    violations:
+      - "enum for ISO language codes (use string language_code)"
+      - "enum for currency codes (use google.type.Money)"
+      - "enum for MIME types (use string mime_type)"
+    good_example: |
+      string language_code = 1;  // "en-US", "de-CH" (BCP-47)
+      string region_code = 2;    // "US", "CH" (CLDR)
+      string mime_type = 3;      // "application/json"
+    bad_example: |
+      enum Language {
+        LANGUAGE_UNSPECIFIED = 0;
+        ENGLISH = 1;
+        GERMAN = 2;
+        // Impossible to enumerate all languages
+      }

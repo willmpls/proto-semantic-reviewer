@@ -1,0 +1,182 @@
+// Bad example proto with semantic issues
+// This should be flagged by the semantic reviewer
+
+syntax = "proto3";
+
+package example.store.v1;
+
+// A product in the store.
+// ISSUES:
+// - Missing google.api.resource annotation
+// - Using 'id' instead of 'name'
+// - Timestamps as strings
+// - Money as double
+// - Missing update_time
+// - Enum without UNSPECIFIED
+// - Duration as int
+message Product {
+  // Using id instead of name - violates AIP-4
+  string id = 1;
+
+  string title = 2;
+
+  // Price as double - should be google.type.Money
+  double price = 3;
+
+  // Timestamp as string - should be google.protobuf.Timestamp
+  string created_at = 4;
+
+  // Missing update_time - violates AIP-148
+
+  // Duration as int - should be google.protobuf.Duration
+  int32 warranty_days = 5;
+
+  // Enum without UNSPECIFIED = 0 - violates AIP-180
+  Category category = 6;
+
+  // Location as separate fields - should be google.type.LatLng
+  double latitude = 7;
+  double longitude = 8;
+
+  // Using float for rating when it's really a discrete scale
+  float rating = 9;
+
+  enum Category {
+    // Missing CATEGORY_UNSPECIFIED = 0
+    ELECTRONICS = 0;  // Should not be 0
+    CLOTHING = 1;
+    FOOD = 2;
+  }
+}
+
+// Request for getting a product
+// ISSUES:
+// - Using 'product_id' instead of 'name'
+// - Wrong type for identifier
+message GetProductRequest {
+  // Should be 'string name' with resource_reference
+  int64 product_id = 1;
+}
+
+// Request for listing products
+// ISSUES:
+// - Using offset pagination instead of token-based
+// - Missing parent field
+// - page_size as int64
+message ListProductsRequest {
+  // Using offset pagination - violates AIP-158
+  int64 offset = 1;
+  int64 limit = 2;
+
+  // Should be int32 page_size and string page_token
+}
+
+// Response for listing products
+// ISSUES:
+// - Using 'items' instead of 'products'
+// - Using 'has_more' instead of 'next_page_token'
+message ListProductsResponse {
+  // Should be 'repeated Product products'
+  repeated Product items = 1;
+
+  // Should be 'string next_page_token'
+  bool has_more = 2;
+
+  // Offset pagination
+  int64 total_count = 3;
+}
+
+// Request for creating a product
+// ISSUES:
+// - Missing parent field
+// - Flat fields instead of resource message
+message CreateProductRequest {
+  // Should have 'string parent' field
+
+  // Should be 'Product product' message, not flat fields
+  string title = 1;
+  double price = 2;
+  string category = 3;
+}
+
+// Response for creating a product
+// ISSUES:
+// - Should return Product directly, not wrapper
+message CreateProductResponse {
+  // Should just return Product
+  string product_id = 1;
+  bool success = 2;
+}
+
+// Request for updating a product
+// ISSUES:
+// - Missing update_mask
+// - Flat fields instead of resource message
+message UpdateProductRequest {
+  string product_id = 1;
+
+  // Should be 'Product product' with 'FieldMask update_mask'
+  string title = 2;
+  double price = 3;
+
+  // Custom field list instead of FieldMask
+  repeated string fields_to_update = 4;
+}
+
+// Request for deleting a product
+// ISSUES:
+// - Using 'product_id' instead of 'name'
+message DeleteProductRequest {
+  string product_id = 1;
+}
+
+// Response for deleting a product
+// ISSUES:
+// - Should return Empty, not custom response
+message DeleteProductResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Order with various semantic issues
+message Order {
+  string order_id = 1;
+
+  // Money as string - should be google.type.Money
+  string total_amount = 2;
+
+  // Timestamp as int64 millis - should be google.protobuf.Timestamp  
+  int64 order_time_millis = 3;
+
+  // Duration as string - should be google.protobuf.Duration
+  string estimated_delivery = 4;
+
+  // Status without proper naming
+  Status status = 5;
+
+  enum Status {
+    // Wrong: should be STATUS_UNSPECIFIED
+    UNKNOWN = 0;
+    PENDING = 1;
+    SHIPPED = 2;
+    DELIVERED = 3;
+  }
+}
+
+// The Store service
+service StoreService {
+  // Gets a product
+  rpc GetProduct(GetProductRequest) returns (Product);
+
+  // Lists products
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+
+  // Creates a product - returns wrapper instead of resource
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+
+  // Updates a product
+  rpc UpdateProduct(UpdateProductRequest) returns (Product);
+
+  // Deletes a product - returns custom response instead of Empty
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+}

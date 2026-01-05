@@ -1,0 +1,41 @@
+# Proto Semantic Reviewer - Requirements
+#
+# This file lists all possible dependencies. Install only what you need:
+#
+#   pip install -r requirements.txt           # Dev dependencies only
+#   pip install -e ".[gemini]"                # Gemini provider
+#   pip install -e ".[openai]"                # OpenAI provider
+#   pip install -e ".[anthropic]"             # Anthropic provider
+#   pip install -e ".[server]"                # FastAPI server
+#   pip install -e ".[full]"                  # Everything
+#   pip install -e ".[full,dev]"              # Everything + dev tools
+
+# =============================================================================
+# Model Providers (install at least one)
+# =============================================================================
+
+# Gemini (Google AI)
+# google-genai>=1.0.0
+
+# OpenAI (GPT-4, etc.)
+# openai>=1.0.0
+
+# Anthropic (Claude)
+# anthropic>=0.18.0
+
+# =============================================================================
+# Server (optional - for HTTP API)
+# =============================================================================
+
+# fastapi>=0.109.0
+# uvicorn[standard]>=0.27.0
+# pydantic>=2.0.0
+
+# =============================================================================
+# Development (for running tests)
+# =============================================================================
+
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.26.0

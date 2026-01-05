@@ -1,0 +1,69 @@
+id: 202
+title: String Types
+summary: |
+  String fields with specific formats (UUID, IPv4, IPv6) should use the
+  google.api.FieldInfo annotation. Equivalence comparison must use RFC-compliant
+  implementations, not primitive text comparison.
+
+guidance: |
+  ## String Field Formats
+  Use `google.api.FieldInfo` extension to specify format:
+
+  | Format | Standard | Example |
+  |--------|----------|---------|
+  | UUID4 | RFC 4122 | `550e8400-e29b-41d4-a716-446655440000` |
+  | IPv4 | RFC 791 | `192.168.1.1` |
+  | IPv6 | RFC 4291 | `2001:db8::1` |
+  | IPv4_OR_IPV6 | Either | Both formats accepted |
+
+  ## Comparison Requirements
+  - MUST NOT use primitive text comparison for equivalence
+  - MUST use RFC-compliant implementations
+  - Different normalizations can cause false inequality
+
+  ## Normalization
+  - IPv4: May remove leading zeros
+  - IPv6: May normalize to lowercase with compressed zeros
+  - UUID: Case-insensitive comparison required
+
+  ## Backwards Compatibility
+  Adding format specification to existing field is NOT backwards compatible
+  unless field has always conformed to the format.
+
+rules:
+  - id: AIP-202-UUID-FORMAT
+    description: UUID fields should specify UUID4 format
+    check_guidance: Fields storing UUIDs should use format annotation
+    violations:
+      - "string uuid without format specification"
+      - "string request_id storing UUIDs without annotation"
+    good_example: |
+      string request_id = 1 [(google.api.field_info).format = UUID4];
+    bad_example: |
+      string request_id = 1;  // UUID format not specified
+
+  - id: AIP-202-IP-ADDRESS-FORMAT
+    description: IP address fields should specify format
+    check_guidance: Fields storing IP addresses should use appropriate format
+    violations:
+      - "string ip_address without format specification"
+      - "Using int32 for IP addresses instead of string with format"
+    good_example: |
+      string ip_address = 1 [(google.api.field_info).format = IPv4_OR_IPV6];
+      string source_ip = 2 [(google.api.field_info).format = IPv4];
+    bad_example: |
+      string ip_address = 1;  // format not specified
+      int32 ip_v4 = 2;        // use string with format
+
+  - id: AIP-202-STRING-VS-BYTES
+    description: Use string for text, bytes for binary data
+    check_guidance: String fields should contain valid UTF-8 text
+    violations:
+      - "string for binary/encoded data"
+      - "bytes for human-readable text"
+    good_example: |
+      string display_name = 1;     // text
+      bytes file_content = 2;      // binary
+      string base64_data = 3;      // encoded as text is ok
+    bad_example: |
+      string binary_data = 1;      // should be bytes

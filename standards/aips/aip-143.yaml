@@ -1,0 +1,156 @@
+id: 143
+title: Standardized Codes
+summary: |
+  Use standardized codes and well-known types for common concepts. Use strings
+  (not enums) for standardized codes. Use google.type.Money for monetary amounts,
+  google.type.LatLng for coordinates, google.type.Date for dates.
+
+guidance: |
+  ## Core Principle
+  For concepts where a standardized code exists, use the standardized code
+  as a string field, NOT an enum. This avoids lookup table frustrations
+  across multiple APIs.
+
+  ## Field Naming
+  - Field names should end in `_code` or `_type` unless a clearer suffix exists
+  - Always document which standard applies (ideally with a link)
+  - Accept input case-insensitively where unambiguous; return canonical case
+
+  ## Standardized Code Types
+
+  | Concept | Standard | Field Name | Example |
+  |---------|----------|------------|---------|
+  | Content/Media Type | IANA media types | `mime_type` | `application/json` |
+  | Country/Region | Unicode CLDR | `region_code` | `US`, `CH` |
+  | Currency | ISO 4217 | `currency_code` | `USD`, `CHF` |
+  | Language | IETF BCP-47 | `language_code` | `en-US`, `de-CH` |
+  | Time Zone | IANA TZ | `time_zone` | `America/New_York` |
+  | UTC Offset | ISO 8601 | `utc_offset` | `+05:30` |
+
+  ## Well-Known Types
+
+  Use Google's common types instead of primitives:
+  - `google.type.Money` - monetary amounts (units + nanos + currency)
+  - `google.type.LatLng` - geographic coordinates
+  - `google.type.Date` - calendar dates without time
+  - `google.type.TimeOfDay` - wall-clock time without date
+  - `google.type.PostalAddress` - postal addresses
+  - `google.type.PhoneNumber` - phone numbers with validation
+
+  ## Money Type Details
+  google.type.Money has:
+  - `currency_code` (string): ISO 4217 code (e.g., "USD")
+  - `units` (int64): Whole units of the amount
+  - `nanos` (int32): Nano units (10^-9), must match sign of units
+
+  NEVER use float/double for money - they lose precision.
+
+rules:
+  - id: AIP-143-MONEY-TYPE
+    description: Monetary amounts must use google.type.Money
+    check_guidance: Fields for price, cost, amount, fee, total should use google.type.Money
+    violations:
+      - "double price (loses precision, no currency)"
+      - "float amount (loses precision, no currency)"
+      - "string price (requires parsing, format ambiguity)"
+      - "int64 price_cents (no currency, error-prone)"
+      - "Decimal or BigDecimal string (use Money instead)"
+    good_example: |
+      import "google/type/money.proto";
+
+      message Order {
+        google.type.Money subtotal = 1;
+        google.type.Money tax = 2;
+        google.type.Money total = 3;
+      }
+    bad_example: |
+      message Order {
+        double subtotal = 1;      // Precision loss
+        string tax = 2;           // Format ambiguity
+        int64 total_cents = 3;    // No currency, assumes cents
+      }
+
+  - id: AIP-143-LATLNG-TYPE
+    description: Geographic coordinates should use google.type.LatLng
+    check_guidance: Latitude/longitude pairs should use LatLng, not separate float fields
+    violations:
+      - "double latitude, double longitude (should be LatLng)"
+      - "float lat, float lng (should be LatLng)"
+      - "string coordinates (should be LatLng)"
+      - "Separate latitude/longitude fields"
+    good_example: |
+      import "google/type/latlng.proto";
+
+      message Location {
+        google.type.LatLng coordinates = 1;
+      }
+    bad_example: |
+      message Location {
+        double latitude = 1;   // Use LatLng instead
+        double longitude = 2;
+      }
+
+  - id: AIP-143-DATE-TYPE
+    description: Date-only values should use google.type.Date
+    check_guidance: Fields for dates without time (birth_date, due_date) should use Date
+    violations:
+      - "string birth_date (should be google.type.Date)"
+      - "string due_date (format ambiguity)"
+      - "Timestamp for date-only values (overly precise)"
+    good_example: |
+      import "google/type/date.proto";
+
+      message Person {
+        google.type.Date birth_date = 1;
+        google.type.Date hire_date = 2;
+      }
+    bad_example: |
+      message Person {
+        string birth_date = 1;  // "1990-01-15" or "01/15/1990" or "15-01-1990"?
+      }
+
+  - id: AIP-143-REGION-CODE
+    description: Use region_code (not country_code) with CLDR codes
+    check_guidance: Country/region fields should use string with CLDR codes
+    violations:
+      - "enum for countries (use string region_code)"
+      - "country_code instead of region_code"
+      - "Full country names instead of codes"
+    good_example: |
+      string region_code = 1;  // "US", "GB", "DE" (CLDR codes)
+    bad_example: |
+      enum Country {           // Don't enumerate countries
+        COUNTRY_UNSPECIFIED = 0;
+        USA = 1;
+        UK = 2;
+      }
+
+  - id: AIP-143-LANGUAGE-CODE
+    description: Use BCP-47 language codes as strings
+    check_guidance: Language fields should be string language_code with BCP-47 format
+    violations:
+      - "enum for languages"
+      - "Full language names"
+      - "Non-standard language codes"
+    good_example: |
+      string language_code = 1;  // "en-US", "zh-Hans", "pt-BR"
+    bad_example: |
+      enum Language {
+        LANGUAGE_UNSPECIFIED = 0;
+        ENGLISH = 1;  // Cannot enumerate all languages/locales
+      }
+
+  - id: AIP-143-CURRENCY-CODE
+    description: Currency codes should use ISO 4217 format
+    check_guidance: Currency fields should be 3-letter ISO 4217 codes (USD, EUR, GBP)
+    violations:
+      - "Using currency symbols ($, €) instead of codes"
+      - "Using full names ('dollars') instead of codes"
+      - "enum for currencies"
+      - "Custom currency identifiers"
+    good_example: |
+      // Prefer google.type.Money which includes currency
+      google.type.Money price = 1;
+
+      // If separate currency needed:
+      string currency_code = 2;  // "USD", "EUR", "GBP"

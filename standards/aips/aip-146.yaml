@@ -1,0 +1,111 @@
+id: 146
+title: Generic Fields
+summary: |
+  Avoid overly generic fields. Prefer oneof for type unions, maps for key-value
+  pairs, Struct for JSON data, and Any only as last resort.
+
+guidance: |
+  ## Preference Hierarchy (Least to Most Generic)
+
+  ### 1. Oneof (Preferred)
+  Use for type unions with limited options:
+  - Preserves type safety and semantic meaning
+  - Adding fields to oneof is non-breaking
+  - Avoid when options are unlimited or cascading
+
+  ### 2. Maps
+  Use when:
+  - Multiple values of same type needed with unknown keys
+  - Behavior differs based on key names (e.g., env vars, headers)
+  - NOT for truly generic/arbitrary data
+
+  ### 3. Struct (google.protobuf.Struct)
+  Use for arbitrary nested JSON when:
+  - Schema is unknown in advance
+  - Storing unstructured user data
+  - Data maps naturally to JSON
+  - Pair with JSONSchema for validation if needed
+
+  ### 4. Any (google.protobuf.Any) - Last Resort
+  Only when other options are infeasible:
+  - Consumers need proto definitions to deserialize
+  - Complex to work with
+  - Avoid if possible
+
+  ## Key Principle
+  Always use the "least generic" approach that satisfies the use case.
+  Don't default to maximum flexibility.
+
+rules:
+  - id: AIP-146-PREFER-ONEOF
+    description: Use oneof for type unions instead of Any or Struct
+    check_guidance: When a field can be one of several known types, use oneof
+    violations:
+      - "google.protobuf.Any for a field with known possible types"
+      - "Struct when types are actually well-defined"
+    good_example: |
+      message Target {
+        oneof target {
+          string user_id = 1;
+          string group_id = 2;
+          string service_account = 3;
+        }
+      }
+    bad_example: |
+      message Target {
+        google.protobuf.Any target = 1;  // types are known, use oneof
+      }
+
+  - id: AIP-146-AVOID-ANY
+    description: Avoid google.protobuf.Any unless absolutely necessary
+    check_guidance: Any should be last resort due to deserialization complexity
+    violations:
+      - "Using Any when Struct would suffice"
+      - "Using Any when oneof with known types would work"
+      - "Using Any for extensibility (use oneof instead)"
+    good_example: |
+      // For arbitrary JSON data
+      google.protobuf.Struct metadata = 1;
+
+      // For known type options
+      oneof payload {
+        OrderCreated order_created = 1;
+        OrderUpdated order_updated = 2;
+      }
+    bad_example: |
+      // Avoid - requires proto definitions to deserialize
+      google.protobuf.Any payload = 1;
+
+  - id: AIP-146-STRUCT-FOR-JSON
+    description: Use Struct for arbitrary JSON-like data
+    check_guidance: When storing unstructured user data, prefer Struct over Any
+    violations:
+      - "Any for arbitrary user metadata"
+      - "String field containing serialized JSON"
+    good_example: |
+      // Arbitrary user-provided configuration
+      google.protobuf.Struct config = 1;
+
+      // With optional JSONSchema validation
+      google.protobuf.Struct data = 2;
+      string json_schema = 3;
+    bad_example: |
+      // Don't serialize JSON to string
+      string config_json = 1;
+
+  - id: AIP-146-MAP-FOR-KEY-VALUE
+    description: Use maps for key-value pairs with unknown keys
+    check_guidance: Maps are appropriate for labels, headers, environment variables
+    violations:
+      - "Repeated KeyValue message when map would suffice"
+      - "Struct for simple string-to-string mappings"
+    good_example: |
+      map<string, string> labels = 1;
+      map<string, string> headers = 2;
+      map<string, string> environment = 3;
+    bad_example: |
+      message Label {
+        string key = 1;
+        string value = 2;
+      }
+      repeated Label labels = 1;  // use map instead

@@ -1,0 +1,120 @@
+id: 142
+title: Time and Duration
+summary: |
+  Timestamps and durations must use the appropriate well-known types, and field
+  names must follow specific conventions: use _time suffix with imperative verb
+  form (create_time, not created_time or created_at).
+
+guidance: |
+  ## Timestamps (Points in Time)
+  Use `google.protobuf.Timestamp` for absolute points in time. These are independent
+  of timezone and represent a specific instant.
+
+  ## Field Naming Requirements
+  - Timestamp fields MUST end in `_time` (or `_times` for repeated fields)
+  - Use IMPERATIVE verb form: `create_time`, `update_time`, `delete_time`
+  - Do NOT use past tense: avoid `created_time`, `updated_time`
+  - Do NOT use `_at` suffix: avoid `created_at`, `updated_at`, `deleted_at`
+
+  ## Durations (Spans of Time)
+  Use `google.protobuf.Duration` for spans between two points in time.
+  - Example: timeout, ttl, retry_delay
+
+  ## Relative Time Offsets
+  For offsets within streams (e.g., video position), use `google.protobuf.Duration`
+  with field names ending in `_offset`. Must include a comment noting the reference point.
+
+  ## Civil Date/Time (Calendar-based)
+  When you need calendar dates without time:
+  - `google.type.Date` for dates (field names ending in `_date`)
+  - `google.type.TimeOfDay` for wall-clock times
+  - `google.type.DateTime` for civil timestamps with timezone
+
+  ## Legacy/Compatibility
+  When proto well-known types cannot be used, include the unit in the field name:
+  - `send_time_millis` (not `send_time` with int64)
+  - `timeout_seconds` (not `timeout` with int32)
+
+rules:
+  - id: AIP-142-TIMESTAMP-TYPE
+    description: Time fields must use google.protobuf.Timestamp
+    check_guidance: Fields representing points in time should be Timestamp, not string/int64
+    violations:
+      - "string create_time (should be Timestamp)"
+      - "int64 created_at_millis (should be Timestamp)"
+      - "string expiration_date (should be Timestamp)"
+    good_example: "google.protobuf.Timestamp create_time = 1;"
+    bad_example: "string create_time = 1;  // or int64 create_time_millis"
+
+  - id: AIP-142-TIME-SUFFIX
+    description: Timestamp fields must end in _time (or _times for repeated)
+    check_guidance: Check that timestamp fields use _time suffix, not _at or other suffixes
+    violations:
+      - "'created_at' should be 'create_time'"
+      - "'updated_at' should be 'update_time'"
+      - "'deleted_at' should be 'delete_time'"
+      - "'expires_at' should be 'expire_time'"
+      - "'timestamp' alone is too vague - use specific name like 'create_time'"
+    good_example: |
+      google.protobuf.Timestamp create_time = 1;
+      google.protobuf.Timestamp update_time = 2;
+      google.protobuf.Timestamp expire_time = 3;
+    bad_example: |
+      google.protobuf.Timestamp created_at = 1;  // wrong suffix
+      google.protobuf.Timestamp timestamp = 2;   // too vague
+
+  - id: AIP-142-IMPERATIVE-FORM
+    description: Timestamp fields should use imperative verb form, not past tense
+    check_guidance: Use create_time (imperative) not created_time (past tense)
+    violations:
+      - "'created_time' should be 'create_time'"
+      - "'updated_time' should be 'update_time'"
+      - "'deleted_time' should be 'delete_time'"
+      - "'published_time' should be 'publish_time'"
+      - "'completed_time' should be 'complete_time'"
+    good_example: |
+      google.protobuf.Timestamp create_time = 1;   // imperative: "create"
+      google.protobuf.Timestamp publish_time = 2;  // imperative: "publish"
+    bad_example: |
+      google.protobuf.Timestamp created_time = 1;   // past tense: "created"
+      google.protobuf.Timestamp published_time = 2; // past tense: "published"
+
+  - id: AIP-142-DURATION-TYPE
+    description: Duration fields must use google.protobuf.Duration
+    check_guidance: Fields representing time spans should be Duration, not int
+    violations:
+      - "int32 timeout_seconds (should be Duration)"
+      - "int64 duration_ms (should be Duration)"
+      - "int32 ttl_minutes (should be Duration)"
+      - "int64 retry_delay_ms (should be Duration)"
+    good_example: |
+      google.protobuf.Duration timeout = 1;
+      google.protobuf.Duration ttl = 2;
+      google.protobuf.Duration retry_delay = 3;
+    bad_example: |
+      int32 timeout_seconds = 1;
+      int64 duration_ms = 2;
+
+  - id: AIP-142-OFFSET-NAMING
+    description: Relative time offsets should end in _offset
+    check_guidance: Duration fields for stream positions should use _offset suffix
+    violations:
+      - "'video_position' for a time offset should be 'video_offset'"
+      - "'start_position' for a time offset should be 'start_offset'"
+    good_example: |
+      // Offset from the start of the video
+      google.protobuf.Duration video_offset = 1;
+
+  - id: AIP-142-DATE-TYPE
+    description: Calendar dates should use google.type.Date
+    check_guidance: Date-only fields (no time component) should use google.type.Date
+    violations:
+      - "string birth_date (should be google.type.Date)"
+      - "string due_date (should be google.type.Date)"
+      - "Timestamp for date-only values (should be Date)"
+    good_example: |
+      google.type.Date birth_date = 1;
+      google.type.Date due_date = 2;
+    bad_example: |
+      string birth_date = 1;  // loses structure
+      google.protobuf.Timestamp due_date = 2;  // overkill for date-only

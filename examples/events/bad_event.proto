@@ -1,0 +1,64 @@
+// Example of common anti-patterns in event messages
+// This file intentionally contains issues for testing the reviewer
+syntax = "proto3";
+
+package example.bad.v1;
+
+// BAD: Missing event_id - can't deduplicate events
+// BAD: Missing event_time - when did this happen?
+// BAD: Missing correlation_id - can't trace across services
+// BAD: No schema versioning
+message OrderCreated {
+  // Using entity ID as the only identifier - not the same as event_id!
+  string order_id = 1;
+
+  // BAD: String timestamp instead of google.protobuf.Timestamp
+  string created_at = 2;
+
+  Order order = 3;
+}
+
+// BAD: No clear indication this is an event
+message StatusUpdate {
+  string order_id = 1;
+
+  // BAD: No previous state for comparison
+  string status = 2;
+
+  // BAD: Using int64 for timestamp
+  int64 updated_at_millis = 3;
+}
+
+message Order {
+  // BAD: Using 'id' instead of more descriptive 'order_id'
+  string id = 1;
+
+  // BAD: Money as double - floating point precision issues
+  double total = 2;
+
+  // BAD: Money as string - requires parsing
+  string price = 3;
+
+  // BAD: Enum without UNSPECIFIED value
+  Status status = 4;
+
+  // BAD: Offset-based pagination fields in an entity (REST pattern, not event)
+  int32 offset = 10;
+  int32 limit = 11;
+}
+
+// BAD: Enum starts with meaningful value instead of UNSPECIFIED
+enum Status {
+  PENDING = 0;     // Should be STATUS_UNSPECIFIED = 0
+  CONFIRMED = 1;
+  SHIPPED = 2;
+}
+
+// BAD: Request message mixed with event patterns
+message CreateOrderRequest {
+  // BAD: Using 'data' instead of the resource name
+  Order data = 1;
+
+  // OK for request: idempotency key
+  string idempotency_key = 2;
+}
