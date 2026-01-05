@@ -10,9 +10,13 @@ Handles the specifics of Google's Gemini API including:
 from __future__ import annotations
 
 import logging
+import ssl
 from typing import Any, Optional, Tuple, List
 
-from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT
+from .base import (
+    ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT,
+    get_provider_headers, get_ca_bundle, get_base_url
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,34 @@ class GeminiAdapter(ModelAdapter):
         from google import genai
         from google.genai import types
 
-        self.client = genai.Client(api_key=api_key)
+        base_url = get_base_url("GEMINI")
+        headers = get_provider_headers("GEMINI")
+        ca_bundle = get_ca_bundle("GEMINI")
+
+        # Build http_options for custom headers and SSL
+        http_options = {}
+        if headers:
+            http_options["headers"] = headers
+            logger.debug(f"Gemini using custom headers: {list(headers.keys())}")
+        if ca_bundle:
+            http_options["ssl_context"] = ssl.create_default_context(cafile=ca_bundle)
+            logger.debug(f"Gemini using custom CA bundle: {ca_bundle}")
+
+        # Build client kwargs
+        client_kwargs = {"api_key": api_key}
+        if http_options:
+            client_kwargs["http_options"] = http_options
+
+        self.client = genai.Client(**client_kwargs)
+
+        # Note: Gemini SDK base URL override may require vertexai=True or
+        # specific endpoint configuration. Log if custom URL requested.
+        if base_url:
+            logger.warning(
+                f"GEMINI_BASE_URL={base_url} is set but Gemini SDK may not support "
+                "direct base URL override. Consider using Vertex AI configuration instead."
+            )
+
         self.model_name = model_name or self.default_model
         self._types = types
 

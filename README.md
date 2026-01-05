@@ -517,6 +517,57 @@ proto-semantic-reviewer/
 | `ALLOWED_AD_GROUPS` | No | - | Comma-separated list of AD groups for authorization |
 | `STANDARDS_DIR` | No | `./standards` | Path to custom standards directory |
 
+### Advanced: Custom Endpoints, Headers, and Certificates
+
+For enterprise environments with API proxies, custom headers, or internal CA certificates, each provider supports per-provider configuration.
+
+**Custom Base URLs** (for API proxies or self-hosted endpoints):
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `OPENAI_BASE_URL` | `https://proxy.corp.com/openai/v1` | Override OpenAI API endpoint |
+| `ANTHROPIC_BASE_URL` | `https://proxy.corp.com/anthropic` | Override Anthropic API endpoint |
+| `GEMINI_BASE_URL` | `https://proxy.corp.com/gemini` | Override Gemini API endpoint (limited support) |
+
+**Custom HTTP Headers** (for authentication, tracing, etc.):
+
+Headers are configured via environment variables matching the pattern `{PROVIDER}_HEADER_{NAME}=value`. Underscores in the header name are converted to hyphens.
+
+```bash
+# Add X-Request-Id header to OpenAI requests
+export OPENAI_HEADER_X_Request_Id=my-trace-id
+
+# Add custom auth header to Anthropic
+export ANTHROPIC_HEADER_X_Custom_Auth=token123
+
+# Multiple headers for same provider
+export OPENAI_HEADER_X_Tenant_Id=tenant-abc
+export OPENAI_HEADER_X_Environment=production
+```
+
+**Custom CA Certificates** (for corporate proxies or self-signed certs):
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `OPENAI_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | CA cert bundle for OpenAI |
+| `ANTHROPIC_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | CA cert bundle for Anthropic |
+| `GEMINI_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | CA cert bundle for Gemini |
+| `LLM_CA_BUNDLE` | `/etc/ssl/certs/corp-ca.pem` | Fallback CA cert for all providers |
+
+Provider-specific CA bundle takes precedence over `LLM_CA_BUNDLE`.
+
+**Example: Corporate proxy with custom CA:**
+
+```bash
+# Route through corporate proxy with custom certificates
+export OPENAI_BASE_URL=https://api-proxy.corp.internal/openai/v1
+export OPENAI_CA_BUNDLE=/etc/ssl/certs/corp-root-ca.pem
+export OPENAI_HEADER_X_Corp_Auth=internal-token
+
+# Start the server
+python -m src server
+```
+
 ### Custom Standards
 
 Standards are loaded from YAML files, making them easy to customize without code changes.

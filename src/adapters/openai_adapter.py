@@ -13,7 +13,12 @@ import json
 import logging
 from typing import Any, Optional, Tuple, List
 
-from .base import ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT
+import httpx
+
+from .base import (
+    ModelAdapter, ToolDeclaration, Message, ToolCall, Role, DEFAULT_TIMEOUT,
+    get_provider_headers, get_ca_bundle, get_base_url, create_ssl_context
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +29,25 @@ class OpenAIAdapter(ModelAdapter):
     def __init__(self, api_key: str, model_name: Optional[str] = None):
         from openai import OpenAI
 
-        self.client = OpenAI(api_key=api_key)
+        base_url = get_base_url("OPENAI")
+        headers = get_provider_headers("OPENAI")
+        ca_bundle = get_ca_bundle("OPENAI")
+
+        # Create custom httpx client if headers or CA bundle are configured
+        http_client = None
+        if headers or ca_bundle:
+            ssl_context = create_ssl_context(ca_bundle)
+            http_client = httpx.Client(headers=headers, verify=ssl_context)
+            logger.debug(f"OpenAI using custom HTTP client: headers={list(headers.keys())}, ca_bundle={ca_bundle}")
+
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            http_client=http_client,
+        )
+        if base_url:
+            logger.debug(f"OpenAI using custom base URL: {base_url}")
+
         self.model_name = model_name or self.default_model
 
     @property

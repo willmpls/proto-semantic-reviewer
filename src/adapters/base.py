@@ -8,13 +8,83 @@ providing a unified way to interact with different LLM providers.
 from __future__ import annotations
 
 import os
+import ssl
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Tuple, List
+from typing import Any, Optional, Tuple, List, Union
 
 # Default timeout for LLM API calls (in seconds)
 DEFAULT_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", 120))
+
+
+def get_provider_headers(provider_prefix: str) -> dict[str, str]:
+    """
+    Parse HTTP headers from environment variables.
+
+    Environment variables matching {PROVIDER}_HEADER_{NAME}=value are converted
+    to HTTP headers where underscores in NAME become hyphens.
+
+    Example:
+        OPENAI_HEADER_X_Request_Id=123 -> {"X-Request-Id": "123"}
+
+    Args:
+        provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
+
+    Returns:
+        Dictionary of header names to values
+    """
+    prefix = f"{provider_prefix}_HEADER_"
+    headers = {}
+    for key, value in os.environ.items():
+        if key.startswith(prefix):
+            header_name = key[len(prefix):].replace("_", "-")
+            headers[header_name] = value
+    return headers
+
+
+def get_ca_bundle(provider_prefix: str) -> Optional[str]:
+    """
+    Get CA certificate bundle path from environment.
+
+    Checks {PROVIDER}_CA_BUNDLE first, then falls back to LLM_CA_BUNDLE.
+
+    Args:
+        provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
+
+    Returns:
+        Path to CA bundle file, or None if not configured
+    """
+    return os.environ.get(f"{provider_prefix}_CA_BUNDLE") or os.environ.get("LLM_CA_BUNDLE")
+
+
+def get_base_url(provider_prefix: str) -> Optional[str]:
+    """
+    Get custom base URL from environment.
+
+    Args:
+        provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
+
+    Returns:
+        Custom base URL, or None if not configured
+    """
+    return os.environ.get(f"{provider_prefix}_BASE_URL")
+
+
+def create_ssl_context(ca_bundle: Optional[str]) -> Union[ssl.SSLContext, bool]:
+    """
+    Create an SSL context with custom CA bundle if provided.
+
+    Args:
+        ca_bundle: Path to CA certificate bundle file, or None
+
+    Returns:
+        ssl.SSLContext if ca_bundle provided, True otherwise (use default verification)
+    """
+    if ca_bundle:
+        ctx = ssl.create_default_context(cafile=ca_bundle)
+        return ctx
+    return True
 
 
 class Role(Enum):
