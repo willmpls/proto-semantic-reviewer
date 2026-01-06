@@ -38,6 +38,9 @@ def get_provider_headers(provider_prefix: str) -> dict[str, str]:
     Returns:
         Dictionary of header names to values
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     prefix = f"{provider_prefix}_HEADER_"
     headers = {}
     for key, value in os.environ.items():
@@ -48,6 +51,8 @@ def get_provider_headers(provider_prefix: str) -> dict[str, str]:
             header_name = header_name.replace("_", "-")
             header_name = header_name.replace("\x00", "_")
             headers[header_name] = value
+            logger.info(f"{provider_prefix}: custom header '{header_name}' configured from {key}")
+
     return headers
 
 
