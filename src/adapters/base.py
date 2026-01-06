@@ -61,18 +61,34 @@ def get_ca_bundle(provider_prefix: str) -> Optional[str]:
     3. SSL_CERT_FILE (standard OpenSSL env var)
     4. REQUESTS_CA_BUNDLE (commonly used by Python HTTP libraries)
 
+    Only returns paths that actually exist on the filesystem.
+
     Args:
         provider_prefix: The provider name in uppercase (e.g., "OPENAI", "ANTHROPIC")
 
     Returns:
-        Path to CA bundle file, or None if not configured
+        Path to CA bundle file, or None if not configured or file doesn't exist
     """
-    return (
-        os.environ.get(f"{provider_prefix}_CA_BUNDLE")
-        or os.environ.get("LLM_CA_BUNDLE")
-        or os.environ.get("SSL_CERT_FILE")
-        or os.environ.get("REQUESTS_CA_BUNDLE")
-    )
+    candidates = [
+        (f"{provider_prefix}_CA_BUNDLE", os.environ.get(f"{provider_prefix}_CA_BUNDLE")),
+        ("LLM_CA_BUNDLE", os.environ.get("LLM_CA_BUNDLE")),
+        ("SSL_CERT_FILE", os.environ.get("SSL_CERT_FILE")),
+        ("REQUESTS_CA_BUNDLE", os.environ.get("REQUESTS_CA_BUNDLE")),
+    ]
+
+    for env_var, path in candidates:
+        if path:
+            if os.path.isfile(path):
+                return path
+            # Log warning for explicitly set but missing CA bundles
+            # (skip warning for SSL_CERT_FILE/REQUESTS_CA_BUNDLE as these are often set system-wide)
+            if env_var in (f"{provider_prefix}_CA_BUNDLE", "LLM_CA_BUNDLE"):
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"{env_var}={path} specified but file does not exist, ignoring"
+                )
+
+    return None
 
 
 def get_base_url(provider_prefix: str) -> Optional[str]:

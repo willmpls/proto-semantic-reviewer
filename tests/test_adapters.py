@@ -98,72 +98,122 @@ class TestGetCaBundle:
             bundle = get_ca_bundle("OPENAI")
             assert bundle is None
 
-    def test_provider_specific_ca_bundle(self):
+    def test_provider_specific_ca_bundle(self, tmp_path):
         """Test provider-specific CA bundle."""
-        with patch.dict(os.environ, {"OPENAI_CA_BUNDLE": "/path/to/openai-ca.pem"}, clear=True):
+        ca_file = tmp_path / "openai-ca.pem"
+        ca_file.write_text("cert content")
+        with patch.dict(os.environ, {"OPENAI_CA_BUNDLE": str(ca_file)}, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/path/to/openai-ca.pem"
+            assert bundle == str(ca_file)
 
-    def test_fallback_to_llm_ca_bundle(self):
+    def test_fallback_to_llm_ca_bundle(self, tmp_path):
         """Test fallback to LLM_CA_BUNDLE when provider-specific not set."""
-        with patch.dict(os.environ, {"LLM_CA_BUNDLE": "/path/to/default-ca.pem"}, clear=True):
+        ca_file = tmp_path / "default-ca.pem"
+        ca_file.write_text("cert content")
+        with patch.dict(os.environ, {"LLM_CA_BUNDLE": str(ca_file)}, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/path/to/default-ca.pem"
+            assert bundle == str(ca_file)
 
-    def test_provider_specific_takes_precedence(self):
+    def test_provider_specific_takes_precedence(self, tmp_path):
         """Test that provider-specific CA bundle takes precedence over fallback."""
+        openai_ca = tmp_path / "openai-ca.pem"
+        openai_ca.write_text("cert content")
+        default_ca = tmp_path / "default-ca.pem"
+        default_ca.write_text("cert content")
         env = {
-            "OPENAI_CA_BUNDLE": "/path/to/openai-ca.pem",
-            "LLM_CA_BUNDLE": "/path/to/default-ca.pem",
+            "OPENAI_CA_BUNDLE": str(openai_ca),
+            "LLM_CA_BUNDLE": str(default_ca),
         }
         with patch.dict(os.environ, env, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/path/to/openai-ca.pem"
+            assert bundle == str(openai_ca)
 
-    def test_different_providers_different_bundles(self):
+    def test_different_providers_different_bundles(self, tmp_path):
         """Test different CA bundles for different providers."""
+        openai_ca = tmp_path / "openai-ca.pem"
+        openai_ca.write_text("cert content")
+        anthropic_ca = tmp_path / "anthropic-ca.pem"
+        anthropic_ca.write_text("cert content")
+        default_ca = tmp_path / "default-ca.pem"
+        default_ca.write_text("cert content")
         env = {
-            "OPENAI_CA_BUNDLE": "/path/to/openai-ca.pem",
-            "ANTHROPIC_CA_BUNDLE": "/path/to/anthropic-ca.pem",
-            "LLM_CA_BUNDLE": "/path/to/default-ca.pem",
+            "OPENAI_CA_BUNDLE": str(openai_ca),
+            "ANTHROPIC_CA_BUNDLE": str(anthropic_ca),
+            "LLM_CA_BUNDLE": str(default_ca),
         }
         with patch.dict(os.environ, env, clear=True):
-            assert get_ca_bundle("OPENAI") == "/path/to/openai-ca.pem"
-            assert get_ca_bundle("ANTHROPIC") == "/path/to/anthropic-ca.pem"
-            assert get_ca_bundle("GEMINI") == "/path/to/default-ca.pem"  # Falls back
+            assert get_ca_bundle("OPENAI") == str(openai_ca)
+            assert get_ca_bundle("ANTHROPIC") == str(anthropic_ca)
+            assert get_ca_bundle("GEMINI") == str(default_ca)  # Falls back
 
-    def test_fallback_to_ssl_cert_file(self):
+    def test_fallback_to_ssl_cert_file(self, tmp_path):
         """Test fallback to SSL_CERT_FILE (standard OpenSSL env var)."""
-        with patch.dict(os.environ, {"SSL_CERT_FILE": "/etc/ssl/certs/ca-certificates.crt"}, clear=True):
+        ca_file = tmp_path / "ca-certificates.crt"
+        ca_file.write_text("cert content")
+        with patch.dict(os.environ, {"SSL_CERT_FILE": str(ca_file)}, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/etc/ssl/certs/ca-certificates.crt"
+            assert bundle == str(ca_file)
 
-    def test_fallback_to_requests_ca_bundle(self):
+    def test_fallback_to_requests_ca_bundle(self, tmp_path):
         """Test fallback to REQUESTS_CA_BUNDLE."""
-        with patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": "/etc/pki/tls/certs/ca-bundle.crt"}, clear=True):
+        ca_file = tmp_path / "ca-bundle.crt"
+        ca_file.write_text("cert content")
+        with patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": str(ca_file)}, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/etc/pki/tls/certs/ca-bundle.crt"
+            assert bundle == str(ca_file)
 
-    def test_ssl_cert_file_precedence_over_requests(self):
+    def test_ssl_cert_file_precedence_over_requests(self, tmp_path):
         """Test SSL_CERT_FILE takes precedence over REQUESTS_CA_BUNDLE."""
+        ssl_cert = tmp_path / "ssl-cert.pem"
+        ssl_cert.write_text("cert content")
+        requests_ca = tmp_path / "requests-ca.pem"
+        requests_ca.write_text("cert content")
         env = {
-            "SSL_CERT_FILE": "/ssl/cert/file.pem",
-            "REQUESTS_CA_BUNDLE": "/requests/ca/bundle.pem",
+            "SSL_CERT_FILE": str(ssl_cert),
+            "REQUESTS_CA_BUNDLE": str(requests_ca),
         }
         with patch.dict(os.environ, env, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/ssl/cert/file.pem"
+            assert bundle == str(ssl_cert)
 
-    def test_llm_ca_bundle_precedence_over_standard_vars(self):
+    def test_llm_ca_bundle_precedence_over_standard_vars(self, tmp_path):
         """Test LLM_CA_BUNDLE takes precedence over SSL_CERT_FILE and REQUESTS_CA_BUNDLE."""
+        llm_ca = tmp_path / "llm-ca.pem"
+        llm_ca.write_text("cert content")
+        ssl_cert = tmp_path / "ssl-cert.pem"
+        ssl_cert.write_text("cert content")
+        requests_ca = tmp_path / "requests-ca.pem"
+        requests_ca.write_text("cert content")
         env = {
-            "LLM_CA_BUNDLE": "/llm/ca/bundle.pem",
-            "SSL_CERT_FILE": "/ssl/cert/file.pem",
-            "REQUESTS_CA_BUNDLE": "/requests/ca/bundle.pem",
+            "LLM_CA_BUNDLE": str(llm_ca),
+            "SSL_CERT_FILE": str(ssl_cert),
+            "REQUESTS_CA_BUNDLE": str(requests_ca),
         }
         with patch.dict(os.environ, env, clear=True):
             bundle = get_ca_bundle("OPENAI")
-            assert bundle == "/llm/ca/bundle.pem"
+            assert bundle == str(llm_ca)
+
+    def test_nonexistent_path_is_skipped(self):
+        """Test that non-existent CA bundle paths are skipped."""
+        env = {
+            "OPENAI_CA_BUNDLE": "/nonexistent/path.pem",
+            "SSL_CERT_FILE": "/also/nonexistent.pem",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle is None
+
+    def test_falls_back_to_existing_file(self, tmp_path):
+        """Test fallback to next candidate when first doesn't exist."""
+        existing_ca = tmp_path / "existing-ca.pem"
+        existing_ca.write_text("cert content")
+        env = {
+            "OPENAI_CA_BUNDLE": "/nonexistent/path.pem",
+            "LLM_CA_BUNDLE": str(existing_ca),
+        }
+        with patch.dict(os.environ, env, clear=True):
+            bundle = get_ca_bundle("OPENAI")
+            assert bundle == str(existing_ca)
 
 
 class TestGetBaseUrl:
