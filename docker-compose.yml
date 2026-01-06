@@ -1,7 +1,7 @@
 # Proto Semantic Reviewer - Docker Compose Configuration
 #
 # Quick Start:
-#   1. Set your API key: export GOOGLE_API_KEY=your-key
+#   1. Copy .env.example to .env and configure your API keys
 #   2. Start server: docker-compose up proto-reviewer
 #   3. Open http://localhost:8000/docs for API documentation
 #
@@ -15,6 +15,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
       # Set your API key(s) - at least one is required
       # Export these in your shell before running docker-compose
@@ -59,6 +62,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -90,6 +96,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - path: .env
+        required: false
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

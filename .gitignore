@@ -29,6 +29,10 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Environment files (contain secrets)
+.env
+.env.local
+
 # Custom CA certificates (keep directory, ignore actual certs)
 certs/*.pem
 certs/*.crt
