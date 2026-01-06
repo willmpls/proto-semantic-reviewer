@@ -69,7 +69,13 @@ class HumanReadableFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         timestamp = datetime.now().strftime("%H:%M:%S")
-        return f"[{timestamp}] {record.levelname:8} {record.name} - {record.getMessage()}"
+        msg = f"[{timestamp}] {record.levelname:8} {record.name} - {record.getMessage()}"
+
+        # Add exception traceback if present
+        if record.exc_info:
+            msg += "\n" + self.formatException(record.exc_info)
+
+        return msg
 
 
 def configure_logging(
